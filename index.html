@@ -127,8 +127,11 @@
     
     .pagination-controls { display: flex; justify-content: center; align-items: center; padding: 16px 24px; border-top: 1px solid var(--card-border); background: var(--input-bg); }
     
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-    
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .action-links { display: flex; gap: 12px; }
+    .edit-link { color: var(--primary); cursor: pointer; font-weight: 600; }
+    .del-link { color: var(--danger); cursor: pointer; font-weight: 600; }
+
     #preview-window { display: none; max-height: 600px; overflow-y: auto; background: #e5e7eb; border: 1px solid var(--card-border); border-radius: 12px; margin-top: 12px; padding: 20px; text-align: center; }
     #print-container { display: flex; flex-wrap: wrap; gap: 5mm; width: 190mm; margin: 0 auto; background: #fff; padding: 10mm; box-sizing: border-box; }
     .qr-wrapper { width: calc(25% - 3.75mm); border: 1px dashed #999; position: relative; padding: 8px; text-align: center; font-family: sans-serif; background: #fff; color: #000; border-radius: 2px; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; }
@@ -200,44 +203,27 @@
       <button class="tab-btn" data-view="view-reports">Reports Dashboard</button>
       <button class="tab-btn" data-view="view-audit">Daily Audit</button>
       <button class="tab-btn" data-view="view-approvals">Approvals <span id="approval-badge" class="badge bg-red" style="display:none; margin-left: 5px;">0</span></button>
+      <button class="tab-btn" data-view="view-settings">Settings & Master DB</button>
     </div>
 
     <!-- VIEW 1: QR GENERATOR -->
     <div id="view-qr" class="app-view">
       <div class="widget-card" style="max-width: 900px; margin: 0 auto;">
         <h2 style="margin-bottom: 8px;">Generate New Inventory Tags</h2>
-        <p style="color: var(--text-soft); margin-bottom: 24px;">Create unique barcodes and assign them to a branch location.</p>
+        <p style="color: var(--text-soft); margin-bottom: 24px;">Select an item from the Master DB to auto-fill details, assign branch, and generate tags.</p>
         
         <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
           <div>
-            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Product Name</label>
-            <input type="text" id="qr-product-name" class="input-field" placeholder="e.g. Earphone Pro" style="margin-top: 6px;" />
-          </div>
-          <div>
-            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Internal ID (SKU)</label>
-            <input type="text" id="qr-product-id" class="input-field" placeholder="e.g. EAR-PRO-01" style="margin-top: 6px;" />
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Select Item</label>
+            <select id="qr-item-select" class="input-field" style="margin-top: 6px;">
+                <option value="">-- Loading Items --</option>
+            </select>
           </div>
           <div>
             <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Assigned Branch</label>
             <select id="qr-branch" class="input-field" style="margin-top: 6px;">
-              <option value="Central / Unassigned Branch">Central / Unassigned Branch</option>
-              <option value="Murlipura, 1 Number">Murlipura, 1 Number</option>
-              <option value="VKI, 17 Number">VKI, 17 Number</option>
-              <option value="VKI, Lohamandi">VKI, Lohamandi</option>
-              <option value="Shastri Nagar">Shastri Nagar</option>
-              <option value="Murlipura, 6 Number">Murlipura, 6 Number</option>
+                <option value="">-- Loading Branches --</option>
             </select>
-          </div>
-        </div>
-
-        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-          <div>
-            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Buying Price (Cost ₹)</label>
-            <input type="number" id="qr-cost" class="input-field" placeholder="e.g. 300" style="margin-top: 6px;" />
-          </div>
-          <div>
-            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Selling Price (₹)</label>
-            <input type="number" id="qr-price" class="input-field" placeholder="e.g. 599" style="margin-top: 6px;" />
           </div>
           <div>
             <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;">Quantity Received</label>
@@ -274,11 +260,6 @@
           <label>Branch Station</label>
           <select id="report-branch" class="input-field" style="margin: 0; width: 160px; padding: 10px;">
             <option value="All">All Branches</option>
-            <option value="Murlipura, 1 Number">Murlipura, 1 Number</option>
-            <option value="VKI, 17 Number">VKI, 17 Number</option>
-            <option value="VKI, Lohamandi">VKI, Lohamandi</option>
-            <option value="Shastri Nagar">Shastri Nagar</option>
-            <option value="Murlipura, 6 Number">Murlipura, 6 Number</option>
             <option value="Central / Unassigned Branch">Central / Unassigned Branch</option>
           </select>
         </div>
@@ -396,11 +377,7 @@
           <label>Select Branch</label>
           <select id="audit-branch" class="input-field" style="margin: 0; width: 180px; padding: 10px;">
             <option value="All">All Branches</option>
-            <option value="Murlipura, 1 Number">Murlipura, 1 Number</option>
-            <option value="VKI, 17 Number">VKI, 17 Number</option>
-            <option value="VKI, Lohamandi">VKI, Lohamandi</option>
-            <option value="Shastri Nagar">Shastri Nagar</option>
-            <option value="Murlipura, 6 Number">Murlipura, 6 Number</option>
+            <option value="Central / Unassigned Branch">Central / Unassigned Branch</option>
           </select>
         </div>
         <button id="btn-run-audit" class="btn-primary" style="margin-left: auto;">Run Audit Report</button>
@@ -468,6 +445,100 @@
         </div>
       </div>
     </div>
+
+    <!-- VIEW 5: MASTER SETTINGS (NEW) -->
+    <div id="view-settings" class="app-view" style="display: none;">
+      <!-- ITEMS MASTER -->
+      <div class="widget-card" style="margin-bottom: 24px;">
+        <div class="section-title">📦 Product / Items Directory</div>
+        <div class="form-grid">
+           <input type="hidden" id="edit-item-id">
+           <div><label class="filter-group"><label>Item Name</label><input type="text" id="item-name" class="input-field" placeholder="e.g. Earphone Pro"></label></div>
+           <div><label class="filter-group"><label>SKU (Internal ID)</label><input type="text" id="item-sku" class="input-field" placeholder="e.g. EAR-PRO-01"></label></div>
+           <div><label class="filter-group"><label>Cost Price (₹)</label><input type="number" id="item-cost" class="input-field" placeholder="0.00"></label></div>
+           <div><label class="filter-group"><label>Selling Price (₹)</label><input type="number" id="item-price" class="input-field" placeholder="0.00"></label></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-save-item" class="btn-primary">Add New Item</button>
+            <button id="btn-cancel-item" class="btn-secondary" style="display:none;">Cancel Edit</button>
+        </div>
+        <div class="table-responsive" style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
+           <table>
+             <thead><tr><th>Name</th><th>SKU</th><th>Cost</th><th>Price</th><th>Actions</th></tr></thead>
+             <tbody id="items-tbody"></tbody>
+           </table>
+        </div>
+      </div>
+
+      <!-- OFFERS & PROMOTIONS -->
+      <div class="widget-card" style="margin-bottom: 24px;">
+        <div class="section-title">🎁 Smart Offers & Promotions (Syncs to Terminal)</div>
+        <div class="form-grid">
+           <input type="hidden" id="edit-offer-id">
+           <div><label class="filter-group"><label>Target Item</label><select id="offer-target" class="input-field"></select></label></div>
+           <div><label class="filter-group"><label>Offer Type</label>
+             <select id="offer-type" class="input-field">
+               <option value="discount">Special Discount Price</option>
+               <option value="bogo">Buy 1 Get 1 (Free Item)</option>
+             </select>
+           </label></div>
+           <div id="offer-price-div"><label class="filter-group"><label>New Discounted Price (₹)</label><input type="number" id="offer-price" class="input-field" placeholder="e.g. 199"></label></div>
+           <div id="offer-free-div" style="display:none;"><label class="filter-group"><label>Free Item</label><select id="offer-free-sku" class="input-field"></select></label></div>
+           <div><label class="filter-group"><label>Start Date</label><input type="text" id="offer-start" class="input-field"></label></div>
+           <div><label class="filter-group"><label>End Date</label><input type="text" id="offer-end" class="input-field"></label></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-save-offer" class="btn-primary">Create Offer</button>
+            <button id="btn-cancel-offer" class="btn-secondary" style="display:none;">Cancel Edit</button>
+        </div>
+        <div class="table-responsive" style="margin-top: 16px;">
+           <table>
+             <thead><tr><th>Target Item</th><th>Offer Detail</th><th>Validity</th><th>Status</th><th>Actions</th></tr></thead>
+             <tbody id="offers-tbody"></tbody>
+           </table>
+        </div>
+      </div>
+
+      <!-- STAFF DIRECTORY -->
+      <div class="widget-card" style="margin-bottom: 24px;">
+        <div class="section-title">👤 Staff Directory</div>
+        <div class="form-grid">
+           <input type="hidden" id="edit-staff-id">
+           <div><label class="filter-group"><label>Staff Name</label><input type="text" id="staff-name" class="input-field" placeholder="Full Name"></label></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-save-staff" class="btn-primary">Add Staff</button>
+            <button id="btn-cancel-staff" class="btn-secondary" style="display:none;">Cancel Edit</button>
+        </div>
+        <div class="table-responsive" style="margin-top: 16px;">
+           <table>
+             <thead><tr><th>Staff Name</th><th>Actions</th></tr></thead>
+             <tbody id="staff-tbody"></tbody>
+           </table>
+        </div>
+      </div>
+
+      <!-- BRANCH DIRECTORY -->
+      <div class="widget-card" style="margin-bottom: 24px;">
+        <div class="section-title">🏢 Branch Management</div>
+        <div class="form-grid">
+           <input type="hidden" id="edit-branch-id">
+           <div><label class="filter-group"><label>Branch Name</label><input type="text" id="branch-name" class="input-field" placeholder="e.g. Murlipura"></label></div>
+           <div><label class="filter-group"><label>Terminal Email Mapping</label><input type="email" id="branch-email" class="input-field" placeholder="branch@domain.com"></label></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-save-branch" class="btn-primary">Add Branch</button>
+            <button id="btn-cancel-branch" class="btn-secondary" style="display:none;">Cancel Edit</button>
+        </div>
+        <div class="table-responsive" style="margin-top: 16px;">
+           <table>
+             <thead><tr><th>Branch Name</th><th>Mapped Terminal Email</th><th>Actions</th></tr></thead>
+             <tbody id="branch-tbody"></tbody>
+           </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script type="module">
@@ -478,10 +549,11 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const CACHE_KEY = 'rj_mobile_admin_cache';
+    
+    // Core Data
     let allInventory = [];
     let allBills = [];
-    let masterItemList = [];
-    let masterStaffList = [];
+    let masterItemList = []; 
     let productCostMap = {}; 
     let selectedItems = new Set();
     let currentReportView = "transactions";
@@ -503,10 +575,17 @@
     
     let activeSyncChannel = null;
 
+    // Master DB Data
+    let itemsMaster = []; let branchesMaster = []; let staffMaster = []; let offersMaster = [];
+    let fpOfferStart, fpOfferEnd;
+
     function displayToast(msg, statusType = "success") {
-        const el = document.createElement('div');
-        el.style.cssText = `position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--card-bg); color: var(--text-main); padding: 12px 24px; border-radius: 12px; z-index: 10000; box-shadow: var(--shadow-soft); border: 1px solid var(--card-border); font-weight: 600;`;
-        el.innerText = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+        const el = document.getElementById('toast');
+        const icon = document.getElementById('toast-icon');
+        document.getElementById('toast-msg').innerText = msg;
+        if (statusType === "success") icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        else icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        el.className = "glass-effect show"; setTimeout(() => el.className = "glass-effect", 3000);
     }
 
     // --- AUTHENTICATION & INITIALIZATION ---
@@ -517,12 +596,25 @@
     
     supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
 
-    function handleAuthChange(user) {
+    async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
         if (user) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             
+            // 1. Initialize Settings UI Datepickers
+            fpOfferStart = flatpickr("#offer-start", { enableTime: true, dateFormat: "Y-m-d H:i" });
+            fpOfferEnd = flatpickr("#offer-end", { enableTime: true, dateFormat: "Y-m-d H:i" });
+            
+            document.getElementById('offer-type').addEventListener('change', (e) => {
+                if (e.target.value === 'discount') { document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'none'; } 
+                else { document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; }
+            });
+
+            // 2. Fetch Master Data first (to populate dropdowns)
+            await Promise.all([loadItems(), loadBranches(), loadStaff(), loadOffers()]);
+
+            // 3. Init standard UI
             initReportsUI();
             initApprovalsListener();
             setupLiveSyncToggle();
@@ -552,6 +644,184 @@
         localStorage.removeItem(CACHE_KEY); await supabase.auth.signOut();
     });
 
+
+    // ==========================================
+    // --- MASTER SETTINGS (CRUD FUNCTIONS) ---
+    // ==========================================
+
+    async function loadItems() {
+        const { data, error } = await supabase.from('items_directory').select('*').order('name');
+        if (!error) {
+            itemsMaster = data;
+            const tbody = document.getElementById('items-tbody');
+            tbody.innerHTML = itemsMaster.map(i => `<tr>
+                <td><strong>${i.name}</strong></td><td>${i.sku}</td><td>₹${i.cost_price}</td><td>₹${i.selling_price}</td>
+                <td class="action-links"><span class="edit-link" onclick="window.editItem('${i.id}')">Edit</span> | <span class="del-link" onclick="window.delItem('${i.id}')">Delete</span></td>
+            </tr>`).join('');
+            
+            // Populate Dropdowns
+            const opts = `<option value="">-- Select Item --</option>` + itemsMaster.map(i => `<option value="${i.sku}">${i.name} (${i.sku})</option>`).join('');
+            document.getElementById('qr-item-select').innerHTML = opts;
+            document.getElementById('offer-target').innerHTML = opts;
+            document.getElementById('offer-free-sku').innerHTML = opts;
+        }
+    }
+
+    document.getElementById('btn-save-item').addEventListener('click', async () => {
+        const id = document.getElementById('edit-item-id').value;
+        const payload = { 
+            name: document.getElementById('item-name').value, sku: document.getElementById('item-sku').value,
+            cost_price: parseFloat(document.getElementById('item-cost').value), selling_price: parseFloat(document.getElementById('item-price').value)
+        };
+        if (!payload.name || !payload.sku || isNaN(payload.cost_price) || isNaN(payload.selling_price)) return displayToast("Fill all item fields correctly", "error");
+        
+        let res;
+        if (id) res = await supabase.from('items_directory').update(payload).eq('id', id);
+        else res = await supabase.from('items_directory').insert(payload);
+        
+        if (res.error) displayToast(res.error.message, "error");
+        else { displayToast("Item saved!"); document.getElementById('btn-cancel-item').click(); loadItems(); }
+    });
+
+    window.editItem = (id) => {
+        const item = itemsMaster.find(i => i.id === id); if(!item) return;
+        document.getElementById('edit-item-id').value = item.id; document.getElementById('item-name').value = item.name;
+        document.getElementById('item-sku').value = item.sku; document.getElementById('item-cost').value = item.cost_price;
+        document.getElementById('item-price').value = item.selling_price;
+        document.getElementById('btn-save-item').innerText = "Update Item"; document.getElementById('btn-cancel-item').style.display = "inline-flex";
+    };
+    
+    document.getElementById('btn-cancel-item').addEventListener('click', () => {
+        document.getElementById('edit-item-id').value = ""; document.getElementById('item-name').value = ""; document.getElementById('item-sku').value = "";
+        document.getElementById('item-cost').value = ""; document.getElementById('item-price').value = "";
+        document.getElementById('btn-save-item').innerText = "Add New Item"; document.getElementById('btn-cancel-item').style.display = "none";
+    });
+
+    window.delItem = async (id) => { if(confirm("Delete this item from master database?")) { await supabase.from('items_directory').delete().eq('id', id); displayToast("Deleted!"); loadItems(); } };
+
+    async function loadBranches() {
+        const { data, error } = await supabase.from('branches_directory').select('*').order('branch_name');
+        if (!error) {
+            branchesMaster = data;
+            document.getElementById('branch-tbody').innerHTML = branchesMaster.map(b => `<tr>
+                <td><strong>${b.branch_name}</strong></td><td>${b.email}</td>
+                <td class="action-links"><span class="edit-link" onclick="window.editBranch('${b.id}')">Edit</span> | <span class="del-link" onclick="window.delBranch('${b.id}')">Delete</span></td>
+            </tr>`).join('');
+            
+            // Populate Branch Dropdowns across the app
+            const opts = branchesMaster.map(b => `<option value="${b.branch_name}">${b.branch_name}</option>`).join('');
+            document.getElementById('qr-branch').innerHTML = opts;
+            
+            const filterOpts = `<option value="All">All Branches</option><option value="Central / Unassigned Branch">Central / Unassigned Branch</option>` + opts;
+            document.getElementById('report-branch').innerHTML = filterOpts;
+            document.getElementById('audit-branch').innerHTML = filterOpts;
+        }
+    }
+    
+    document.getElementById('btn-save-branch').addEventListener('click', async () => {
+        const id = document.getElementById('edit-branch-id').value;
+        const payload = { branch_name: document.getElementById('branch-name').value, email: document.getElementById('branch-email').value };
+        if (!payload.branch_name || !payload.email) return displayToast("Fill all fields", "error");
+        
+        let res; if (id) res = await supabase.from('branches_directory').update(payload).eq('id', id); else res = await supabase.from('branches_directory').insert(payload);
+        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Branch saved!"); document.getElementById('btn-cancel-branch').click(); loadBranches(); }
+    });
+
+    window.editBranch = (id) => {
+        const b = branchesMaster.find(i => i.id === id); if(!b) return;
+        document.getElementById('edit-branch-id').value = b.id; document.getElementById('branch-name').value = b.branch_name; document.getElementById('branch-email').value = b.email;
+        document.getElementById('btn-save-branch').innerText = "Update Branch"; document.getElementById('btn-cancel-branch').style.display = "inline-flex";
+    };
+    
+    document.getElementById('btn-cancel-branch').addEventListener('click', () => {
+        document.getElementById('edit-branch-id').value = ""; document.getElementById('branch-name').value = ""; document.getElementById('branch-email').value = "";
+        document.getElementById('btn-save-branch').innerText = "Add Branch"; document.getElementById('btn-cancel-branch').style.display = "none";
+    });
+    window.delBranch = async (id) => { if(confirm("Delete branch?")) { await supabase.from('branches_directory').delete().eq('id', id); displayToast("Deleted!"); loadBranches(); } };
+
+    async function loadStaff() {
+        const { data, error } = await supabase.from('staff_directory').select('*').order('name');
+        if (!error) {
+            staffMaster = data;
+            document.getElementById('staff-tbody').innerHTML = staffMaster.map(s => `<tr>
+                <td><strong>${s.name}</strong></td>
+                <td class="action-links"><span class="edit-link" onclick="window.editStaff('${s.id}')">Edit</span> | <span class="del-link" onclick="window.delStaff('${s.id}')">Delete</span></td>
+            </tr>`).join('');
+            
+            // Populate Report filter dropdown
+            document.getElementById('report-staff').innerHTML = `<option value="All">All Staff</option>` + staffMaster.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+        }
+    }
+
+    document.getElementById('btn-save-staff').addEventListener('click', async () => {
+        const id = document.getElementById('edit-staff-id').value; const payload = { name: document.getElementById('staff-name').value };
+        if (!payload.name) return displayToast("Fill name", "error");
+        let res; if (id) res = await supabase.from('staff_directory').update(payload).eq('id', id); else res = await supabase.from('staff_directory').insert(payload);
+        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Staff saved!"); document.getElementById('btn-cancel-staff').click(); loadStaff(); }
+    });
+    window.editStaff = (id) => {
+        const s = staffMaster.find(i => i.id === id); if(!s) return;
+        document.getElementById('edit-staff-id').value = s.id; document.getElementById('staff-name').value = s.name;
+        document.getElementById('btn-save-staff').innerText = "Update Staff"; document.getElementById('btn-cancel-staff').style.display = "inline-flex";
+    };
+    document.getElementById('btn-cancel-staff').addEventListener('click', () => {
+        document.getElementById('edit-staff-id').value = ""; document.getElementById('staff-name').value = "";
+        document.getElementById('btn-save-staff').innerText = "Add Staff"; document.getElementById('btn-cancel-staff').style.display = "none";
+    });
+    window.delStaff = async (id) => { if(confirm("Delete staff?")) { await supabase.from('staff_directory').delete().eq('id', id); displayToast("Deleted!"); loadStaff(); } };
+
+    async function loadOffers() {
+        const { data, error } = await supabase.from('offers').select('*').order('start_date');
+        if (!error) {
+            offersMaster = data;
+            document.getElementById('offers-tbody').innerHTML = offersMaster.map(o => {
+                const isDiscount = o.offer_type === 'discount';
+                const detail = isDiscount ? `New Price: ₹${o.new_price}` : `Free SKU: ${o.free_item_sku}`;
+                const validText = `${new Date(o.start_date).toLocaleDateString()} to ${new Date(o.end_date).toLocaleDateString()}`;
+                
+                const now = new Date(); const isLive = now >= new Date(o.start_date) && now <= new Date(o.end_date);
+                const statusBadge = isLive ? `<span class="badge bg-green">Live Active</span>` : `<span class="badge bg-gray">Inactive</span>`;
+                
+                return `<tr>
+                <td><strong>${o.target_item_sku}</strong></td><td><span class="badge bg-warning">${isDiscount ? 'Special Price' : 'BOGO (Free)'}</span></td><td>${detail}</td>
+                <td><small>${validText}</small></td><td>${statusBadge}</td>
+                <td class="action-links"><span class="edit-link" onclick="window.editOffer('${o.id}')">Edit</span> | <span class="del-link" onclick="window.delOffer('${o.id}')">Delete</span></td>
+            </tr>`}).join('');
+        }
+    }
+    
+    document.getElementById('btn-save-offer').addEventListener('click', async () => {
+        const id = document.getElementById('edit-offer-id').value;
+        const type = document.getElementById('offer-type').value;
+        const payload = { 
+            target_item_sku: document.getElementById('offer-target').value, offer_type: type,
+            new_price: type === 'discount' ? parseFloat(document.getElementById('offer-price').value) : null,
+            free_item_sku: type === 'bogo' ? document.getElementById('offer-free-sku').value : null,
+            start_date: document.getElementById('offer-start').value, end_date: document.getElementById('offer-end').value
+        };
+        if (!payload.target_item_sku || !payload.start_date || !payload.end_date) return displayToast("Required fields missing", "error");
+        
+        let res; if (id) res = await supabase.from('offers').update(payload).eq('id', id); else res = await supabase.from('offers').insert(payload);
+        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Offer saved! Syncs automatically to Terminal."); document.getElementById('btn-cancel-offer').click(); loadOffers(); }
+    });
+
+    window.editOffer = (id) => {
+        const o = offersMaster.find(i => i.id === id); if(!o) return;
+        document.getElementById('edit-offer-id').value = o.id; document.getElementById('offer-target').value = o.target_item_sku;
+        document.getElementById('offer-type').value = o.offer_type; document.getElementById('offer-type').dispatchEvent(new Event('change'));
+        if (o.offer_type === 'discount') document.getElementById('offer-price').value = o.new_price; else document.getElementById('offer-free-sku').value = o.free_item_sku;
+        fpOfferStart.setDate(o.start_date); fpOfferEnd.setDate(o.end_date);
+        document.getElementById('btn-save-offer').innerText = "Update Offer"; document.getElementById('btn-cancel-offer').style.display = "inline-flex";
+    };
+    document.getElementById('btn-cancel-offer').addEventListener('click', () => {
+        document.getElementById('edit-offer-id').value = ""; fpOfferStart.clear(); fpOfferEnd.clear();
+        document.getElementById('btn-save-offer').innerText = "Create Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
+    });
+    window.delOffer = async (id) => { if(confirm("Remove this offer completely?")) { await supabase.from('offers').delete().eq('id', id); displayToast("Deleted!"); loadOffers(); } };
+
+    // ==========================================
+
+
     // --- USER SETTINGS CACHE ---
     document.getElementById('btn-save-settings').addEventListener('click', () => {
         const settings = {
@@ -573,13 +843,7 @@
                     toggle.checked = settings.sync;
                 }
                 if(settings.branch) document.getElementById('report-branch').value = settings.branch;
-                if(settings.staff) {
-                    const staffSelect = document.getElementById('report-staff');
-                    if(!Array.from(staffSelect.options).find(o => o.value === settings.staff)) {
-                        staffSelect.innerHTML += `<option value="${settings.staff}">${settings.staff}</option>`;
-                    }
-                    staffSelect.value = settings.staff;
-                }
+                if(settings.staff) document.getElementById('report-staff').value = settings.staff;
             }
             loadFromLocalCache(); 
             toggleLiveSyncChannel(); 
@@ -636,11 +900,10 @@
 
     // --- FETCH INVENTORY ---
     async function fetchFullInventory() {
-        // Now fetching 'last_audited_at' naturally via '*'
         const { data, error } = await supabase.from('inventory_pieces').select('*').eq('status', 'Available');
         if(error) throw error;
         
-        allInventory = []; productCostMap = {}; let tempItems = new Set(masterItemList);
+        allInventory = []; productCostMap = {}; let tempItems = new Set();
         data.forEach(item => { 
             allInventory.push(item);
             if (item.product_name) {
@@ -651,7 +914,7 @@
         
         masterItemList = Array.from(tempItems).sort();
         if(selectedItems.size === 0) selectedItems = new Set(masterItemList);
-        renderItemFilter(); updateItemBtnText(); saveToLocalCache();
+        renderItemFilter(); updateItemBtnText(); saveToLocalCache(); processReportData();
     }
 
     // --- FETCH BILLS (PAGINATED) ---
@@ -679,24 +942,18 @@
           const { data, error } = await queryBuilder.range(currentOffset, currentOffset + limitCount - 1);
           if(error) throw error;
 
-          let tempStaff = new Set(masterStaffList); let tempItems = new Set(masterItemList);
+          let tempItems = new Set(masterItemList);
 
           if (data && data.length > 0) {
               currentOffset += data.length;
               hasMoreBills = data.length === limitCount; 
               data.forEach(bill => {
                   allBills.push(bill);
-                  if (bill.staff_name) tempStaff.add(bill.staff_name);
                   if (bill.items) Object.values(bill.items).forEach(item => { if (item.name) tempItems.add(item.name); });
               });
           } else { hasMoreBills = false; }
 
-          masterStaffList = Array.from(tempStaff).sort(); masterItemList = Array.from(tempItems).sort();
-          
-          const staffSelect = document.getElementById('report-staff'); const currentStaffVal = staffSelect.value;
-          staffSelect.innerHTML = '<option value="All">All Staff</option>' + masterStaffList.map(s => `<option value="${s}">${s}</option>`).join('');
-          staffSelect.value = currentStaffVal; 
-          
+          masterItemList = Array.from(tempItems).sort();
           if(!isLoadMore && selectedItems.size === 0) selectedItems = new Set(masterItemList); 
           renderItemFilter(); updateItemBtnText(); saveToLocalCache(); processReportData();
 
@@ -837,7 +1094,58 @@
       } catch (err) { alert("Failed to update status."); }
     };
 
-    // --- UI LOGIC ---
+    // --- NEW QR GENERATOR (Integrated with Master DB) ---
+    document.getElementById('btn-generate-qr').addEventListener('click', async () => {
+      const selectedSku = document.getElementById('qr-item-select').value;
+      const targetItem = itemsMaster.find(i => i.sku === selectedSku);
+      const qrBranch = document.getElementById('qr-branch').value;
+      const qty = parseInt(document.getElementById('qr-qty').value);
+
+      if (!targetItem || isNaN(qty) || qty <= 0) { displayToast("Please select item and valid quantity.", "error"); return; }
+
+      const btn = document.getElementById('btn-generate-qr'); const dlBtn = document.getElementById('btn-download-pdf'); const statusText = document.getElementById('qr-status');
+      const previewWindow = document.getElementById('preview-window'); const printContainer = document.getElementById('print-container');
+      btn.disabled = true; btn.innerText = "Processing..."; dlBtn.style.display = 'none'; statusText.style.display = 'none';
+      while(printContainer.firstChild) { printContainer.removeChild(printContainer.firstChild); }
+
+      try {
+        let startCount = 10000000;
+        const { data: highestDoc } = await supabase.from('inventory_pieces').select('id').eq('product_id', targetItem.sku).order('id', { ascending: false }).limit(1);
+        if (highestDoc && highestDoc.length > 0) {
+            const parts = highestDoc[0].id.split('-');
+            const lastNum = parseInt(parts[parts.length - 1]);
+            if (!isNaN(lastNum)) startCount = lastNum;
+        }
+
+        let currentCount = startCount;
+        const piecesToInsert = [];
+
+        for (let i = 0; i < qty; i++) {
+          currentCount++; const uniquePieceID = `${targetItem.sku}-${currentCount}`;
+          const wrapperDiv = document.createElement('div'); wrapperDiv.className = 'qr-wrapper';
+          wrapperDiv.innerHTML = `<div class="scissor-icon">✂</div><div class="qr-label-header"><span>RJ Mobile</span></div><h4>${targetItem.name}</h4><p>₹${targetItem.selling_price.toFixed(2)}</p><div class="qr-code" id="qr-${uniquePieceID}"></div>`;
+          printContainer.appendChild(wrapperDiv);
+          const qrContainer = document.getElementById(`qr-${uniquePieceID}`);
+          new QRCode(qrContainer, { text: uniquePieceID, width: 150, height: 150 });
+          const canvas = qrContainer.querySelector('canvas');
+          if (canvas) { const imgSrc = canvas.toDataURL("image/png"); qrContainer.innerHTML = `<img src="${imgSrc}" alt="QR" />`; }
+          
+          piecesToInsert.push({ id: uniquePieceID, product_id: targetItem.sku, product_name: targetItem.name, cost_price: targetItem.cost_price, price: targetItem.selling_price, status: "Available", branch: qrBranch });
+        }
+        
+        const { error } = await supabase.from('inventory_pieces').insert(piecesToInsert);
+        if(error) throw error;
+
+        btn.disabled = false; btn.innerText = "1. Generate Labels & Save DB";
+        statusText.innerText = `Success: Generated pieces ${startCount + 1} to ${currentCount} for ${qrBranch}.`; statusText.style.display = 'block'; previewWindow.style.display = 'block'; 
+        dlBtn.style.display = 'inline-flex'; dlBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> 2. Print / Save as PDF`; 
+      } catch (err) { console.error(err); displayToast("An error occurred generating tags.", "error"); btn.disabled = false; btn.innerText = "1. Generate Labels & Save DB"; }
+    });
+
+    document.getElementById('btn-download-pdf').addEventListener('click', () => { window.print(); document.getElementById('qr-qty').value = ''; });
+
+
+    // --- REPORTS UI & LOGIC ---
     document.getElementById('theme-toggle').addEventListener('click', () => {
       const isLight = document.documentElement.classList.toggle('light-theme'); localStorage.setItem('rj_theme', isLight ? 'light' : 'dark');
       document.getElementById('flatpickr-theme').href = isLight ? 'https://npmcdn.com/flatpickr/dist/themes/light.css' : 'https://npmcdn.com/flatpickr/dist/themes/dark.css';
@@ -849,7 +1157,7 @@
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
         const targetView = e.target.getAttribute('data-view'); document.getElementById(targetView).style.display = 'block';
         if (targetView === 'view-reports' && (allBills.length > 0 || allInventory.length > 0)) processReportData();
-        if (targetView === 'view-audit' && allInventory.length === 0) performFullDataSync(); // Ensure inventory is loaded for audit
+        if (targetView === 'view-audit' && allInventory.length === 0) performFullDataSync(); 
       });
     });
 
@@ -921,54 +1229,6 @@
       if(selectedItems.size === masterItemList.length && masterItemList.length > 0) btn.innerText = "All Items Selected"; else if(selectedItems.size === 0) btn.innerText = "No Items Selected"; else btn.innerText = `${selectedItems.size} Selected`;
     }
 
-    // --- QR GENERATION ---
-    document.getElementById('btn-generate-qr').addEventListener('click', async () => {
-      const name = document.getElementById('qr-product-name').value.trim(); const sku = document.getElementById('qr-product-id').value.trim(); const qrBranch = document.getElementById('qr-branch').value;
-      const costPrice = parseFloat(document.getElementById('qr-cost').value); const price = parseFloat(document.getElementById('qr-price').value); const qty = parseInt(document.getElementById('qr-qty').value);
-
-      if (!name || !sku || isNaN(costPrice) || isNaN(price) || isNaN(qty) || qty <= 0) { alert("Please fill out all fields with valid information."); return; }
-
-      const btn = document.getElementById('btn-generate-qr'); const dlBtn = document.getElementById('btn-download-pdf'); const statusText = document.getElementById('qr-status');
-      const previewWindow = document.getElementById('preview-window'); const printContainer = document.getElementById('print-container');
-      btn.disabled = true; btn.innerText = "Processing..."; dlBtn.style.display = 'none'; statusText.style.display = 'none';
-      while(printContainer.firstChild) { printContainer.removeChild(printContainer.firstChild); }
-
-      try {
-        let startCount = 10000000;
-        const { data: highestDoc } = await supabase.from('inventory_pieces').select('id').eq('product_id', sku).order('id', { ascending: false }).limit(1);
-        if (highestDoc && highestDoc.length > 0) {
-            const parts = highestDoc[0].id.split('-');
-            const lastNum = parseInt(parts[parts.length - 1]);
-            if (!isNaN(lastNum)) startCount = lastNum;
-        }
-
-        let currentCount = startCount;
-        const piecesToInsert = [];
-
-        for (let i = 0; i < qty; i++) {
-          currentCount++; const uniquePieceID = `${sku}-${currentCount}`;
-          const wrapperDiv = document.createElement('div'); wrapperDiv.className = 'qr-wrapper';
-          wrapperDiv.innerHTML = `<div class="scissor-icon">✂</div><div class="qr-label-header"><span>RJ Mobile</span></div><h4>${name}</h4><p>₹${price.toFixed(2)}</p><div class="qr-code" id="qr-${uniquePieceID}"></div>`;
-          printContainer.appendChild(wrapperDiv);
-          const qrContainer = document.getElementById(`qr-${uniquePieceID}`);
-          new QRCode(qrContainer, { text: uniquePieceID, width: 150, height: 150 });
-          const canvas = qrContainer.querySelector('canvas');
-          if (canvas) { const imgSrc = canvas.toDataURL("image/png"); qrContainer.innerHTML = `<img src="${imgSrc}" alt="QR" />`; }
-          
-          piecesToInsert.push({ id: uniquePieceID, product_id: sku, product_name: name, cost_price: costPrice, price: price, status: "Available", branch: qrBranch });
-        }
-        
-        const { error } = await supabase.from('inventory_pieces').insert(piecesToInsert);
-        if(error) throw error;
-
-        btn.disabled = false; btn.innerText = "1. Generate Labels & Save DB";
-        statusText.innerText = `Success: Generated pieces ${startCount + 1} to ${currentCount} for ${qrBranch}.`; statusText.style.display = 'block'; previewWindow.style.display = 'block'; 
-        dlBtn.style.display = 'inline-flex'; dlBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> 2. Print / Save as PDF`; 
-      } catch (err) { console.error(err); alert("An error occurred generating and saving tags."); btn.disabled = false; btn.innerText = "1. Generate Labels & Save DB"; }
-    });
-
-    document.getElementById('btn-download-pdf').addEventListener('click', () => { window.print(); document.getElementById('qr-qty').value = ''; });
-
     // --- CACHE & PERSISTENCE ---
     function loadFromLocalCache() {
         try {
@@ -976,7 +1236,7 @@
             if(cached) {
                 const parsed = JSON.parse(cached);
                 allBills = parsed.bills || []; allInventory = parsed.inventory || [];
-                masterItemList = parsed.items || []; masterStaffList = parsed.staff || [];
+                masterItemList = parsed.items || [];
                 if (masterItemList.length > 0) { selectedItems = new Set(masterItemList); renderItemFilter(); updateItemBtnText(); }
                 return (allBills.length > 0 || allInventory.length > 0);
             }
@@ -985,11 +1245,11 @@
     }
 
     function saveToLocalCache() {
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ bills: allBills, inventory: allInventory, items: masterItemList, staff: masterStaffList }));
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ bills: allBills, inventory: allInventory, items: masterItemList }));
         } catch (e) { }
     }
 
-    // --- RENDER DYNAMIC VIEWS ---
+    // --- DATA PROCESSING & DASHBOARD RENDER ---
     function processReportData() {
       if (selectedItems.size === 0) {
         document.getElementById('metric-stock').innerText = '0'; document.getElementById('metric-stock-sub').innerText = 'Est. Retail Value: ₹0.00';
@@ -1004,6 +1264,7 @@
       itemAgg = {}; staffAgg = {}; branchAgg = {}; stockAgg = {}; filteredTransactions = []; 
 
       allInventory.forEach(item => {
+        // We match by product_name since the old structure used names in the itemsList
         if (!selectedItems.has(item.product_name)) return;
         if (selectedBranch !== "All" && item.branch !== selectedBranch) return; 
         
@@ -1022,14 +1283,17 @@
         
         if (bill.items) {
            Object.values(bill.items).forEach(item => {
-             if (selectedItems.has(item.name)) {
-                containsFilteredItem = true; itemsList += `${item.name} (x${item.quantity}), `;
-                let unitCost = item.costPrice || productCostMap[item.name] || 0; let itemTotalCost = unitCost * item.quantity;
+             // Extract plain name if badge is present
+             const cleanName = item.name.replace(/<[^>]*>?/gm, ''); 
+             
+             if (selectedItems.has(cleanName) || selectedItems.has(item.name)) {
+                containsFilteredItem = true; itemsList += `${cleanName} (x${item.quantity}), `;
+                let unitCost = item.costPrice || productCostMap[cleanName] || 0; let itemTotalCost = unitCost * item.quantity;
                 let itemProfit = item.subtotal - itemTotalCost; billCost += itemTotalCost;
                 
-                itemAgg[item.name] = itemAgg[item.name] || { qty: 0, rev: 0, profit: 0, branches: {} };
-                itemAgg[item.name].qty += item.quantity; itemAgg[item.name].rev += item.subtotal; itemAgg[item.name].profit += itemProfit;
-                itemAgg[item.name].branches[branchName] = (itemAgg[item.name].branches[branchName] || 0) + item.quantity;
+                itemAgg[cleanName] = itemAgg[cleanName] || { qty: 0, rev: 0, profit: 0, branches: {} };
+                itemAgg[cleanName].qty += item.quantity; itemAgg[cleanName].rev += item.subtotal; itemAgg[cleanName].profit += itemProfit;
+                itemAgg[cleanName].branches[branchName] = (itemAgg[cleanName].branches[branchName] || 0) + item.quantity;
              }
            });
            if (itemsList.endsWith(', ')) itemsList = itemsList.slice(0, -2);
