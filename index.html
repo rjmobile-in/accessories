@@ -515,6 +515,7 @@
                     <select id="offer-type" class="input-field" style="margin-bottom: 0;">
                         <option value="discount">Special Discount Price</option>
                         <option value="bogo">Give Free Items (BOGO / Gifts)</option>
+                        <option value="combo">Combo (Discount + Free Gifts)</option> <!-- NAYA OPTION -->
                     </select>
                 </div>
 
@@ -645,8 +646,13 @@
             fpOfferEnd = flatpickr("#offer-end", { enableTime: true, dateFormat: "Y-m-d H:i" });
             
             document.getElementById('offer-type').addEventListener('change', (e) => {
-                if (e.target.value === 'discount') { document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'none'; } 
-                else { document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; }
+                if (e.target.value === 'discount') { 
+                    document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'none'; 
+                } else if (e.target.value === 'bogo') { 
+                    document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; 
+                } else if (e.target.value === 'combo') {
+                    document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'block'; 
+                }
             });
 
             await Promise.all([loadItems(), loadBranches(), loadStaff(), loadOffers()]);
@@ -830,14 +836,15 @@
         if (!error) {
             offersMaster = data;
             document.getElementById('offers-tbody').innerHTML = offersMaster.map(o => {
-                const isDiscount = o.offer_type === 'discount';
-                
-                // Read new arrays, fallback to old single strings for legacy compatibility
                 const targetItems = o.target_items ? o.target_items : (o.target_item_sku ? [{sku: o.target_item_sku, qty: 1}] : []);
                 const freeItems = o.free_items ? o.free_items : (o.free_item_sku ? [{sku: o.free_item_sku, qty: 1}] : []);
                 
                 const targetText = targetItems.map(t => `${t.qty}x ${t.sku}`).join('<br>');
-                let detailText = isDiscount ? `Price Drop: ₹${o.new_price}` : freeItems.map(f => `+ ${f.qty}x ${f.sku}`).join('<br>');
+                
+                let detailText = '';
+                if (o.offer_type === 'discount') { detailText = `Price Drop: ₹${o.new_price}`; } 
+                else if (o.offer_type === 'bogo') { detailText = freeItems.map(f => `+ ${f.qty}x ${f.sku}`).join('<br>'); } 
+                else if (o.offer_type === 'combo') { detailText = `Price Drop: ₹${o.new_price}<br>` + freeItems.map(f => `+ ${f.qty}x ${f.sku}`).join('<br>'); }
                 
                 const validText = `${new Date(o.start_date).toLocaleDateString()} to ${new Date(o.end_date).toLocaleDateString()}`;
                 const now = new Date(); const isLive = now >= new Date(o.start_date) && now <= new Date(o.end_date);
@@ -874,9 +881,9 @@
             offer_type: type,
             target_items: target_items,
             target_item_sku: target_items[0]?.sku || null, // fallback
-            new_price: type === 'discount' ? parseFloat(document.getElementById('offer-price').value) : null,
-            free_items: type === 'bogo' ? free_items : null,
-            free_item_sku: (type === 'bogo' && free_items.length > 0) ? free_items[0].sku : null, // fallback
+            new_price: (type === 'discount' || type === 'combo') ? parseFloat(document.getElementById('offer-price').value) : null,
+            free_items: (type === 'bogo' || type === 'combo') ? free_items : null,
+            free_item_sku: ((type === 'bogo' || type === 'combo') && free_items.length > 0) ? free_items[0].sku : null,
             start_date: document.getElementById('offer-start').value, end_date: document.getElementById('offer-end').value
         };
         
@@ -891,7 +898,7 @@
         document.getElementById('edit-offer-id').value = o.id; 
         
         document.getElementById('offer-type').value = o.offer_type; document.getElementById('offer-type').dispatchEvent(new Event('change'));
-        if (o.offer_type === 'discount') document.getElementById('offer-price').value = o.new_price; 
+        if (o.offer_type === 'discount' || o.offer_type === 'combo') { document.getElementById('offer-price').value = o.new_price; }
         
         document.getElementById('offer-targets-container').innerHTML = '';
         const tItems = o.target_items ? o.target_items : (o.target_item_sku ? [{sku: o.target_item_sku, qty: 1}] : []);
