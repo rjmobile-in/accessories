@@ -395,13 +395,24 @@
           <label>Audit Date</label>
           <input type="text" id="audit-date" class="input-field" style="margin: 0; width: 140px; padding: 10px;" placeholder="Select Date" />
         </div>
-        <div class="filter-group">
-          <label>Select Branch</label>
-          <select id="audit-branch" class="input-field" style="margin: 0; width: 180px; padding: 10px;">
-            <option value="All">All Branches</option>
-            <option value="Central / Unassigned Branch">Central / Unassigned Branch</option>
-          </select>
+        
+        <!-- Multi-Select Audit Branch Filter -->
+        <div class="filter-group dropdown custom-dropdown">
+          <label>Select Branch(es)</label>
+          <button class="input-field custom-dropdown-btn" style="margin: 0; width: 220px; padding: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
+            <span id="audit-branch-btn-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">All Branches</span> 
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-content">
+            <input type="text" id="audit-branch-search-input" class="input-field" placeholder="Search branches..." style="padding: 10px; margin-bottom: 12px;" autocomplete="off">
+            <div class="multi-select-actions">
+              <button id="btn-select-all-audit-branches">Select All</button>
+              <button id="btn-deselect-all-audit-branches">Deselect All</button>
+            </div>
+            <div id="audit-branch-checkboxes" style="max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
+          </div>
         </div>
+
         <button id="btn-run-audit" class="btn-primary" style="margin-left: auto;">Run Audit Report</button>
       </div>
 
@@ -575,7 +586,7 @@
            <input type="hidden" id="edit-branch-id">
            <div><label class="filter-group"><label>Branch Name</label><input type="text" id="branch-name" class="input-field" placeholder="e.g. Murlipura"></label></div>
            <div><label class="filter-group"><label>Terminal Email Mapping</label><input type="email" id="branch-email" class="input-field" placeholder="branch@domain.com"></label></div>
-           <div><label class="filter-group"><label>Terminal Password</label><input type="password" id="branch-password" class="input-field" placeholder="Secure Password"></label></div>
+           <div><label class="filter-group"><label>Terminal Password</label><input type="text" id="branch-password" class="input-field" placeholder="Secure Password"></label></div>
         </div>
         <div style="display: flex; gap: 8px;">
             <button id="btn-save-branch" class="btn-primary">Add Branch</button>
@@ -607,6 +618,7 @@
     // Multi-Select Sets
     let selectedItems = new Set();
     let selectedBranches = new Set(masterBranchList);
+    let selectedAuditBranches = new Set();
     let selectedStaff = new Set();
     
     let currentReportView = "transactions";
@@ -661,7 +673,7 @@
             initReportsUI();
             initApprovalsListener();
             setupLiveSyncToggle();
-            startAutomatedDailyAudit(); // Initialize the 00:00 trigger
+            startAutomatedDailyAudit(); 
             
             loadSettingsFromCache();
             if (allBills.length === 0 && allInventory.length === 0) performFullDataSync();
@@ -748,11 +760,14 @@
             
             const branchOpts = branchesMaster.map(b => `<option value="${b.branch_name}">${b.branch_name}</option>`).join('');
             document.getElementById('qr-branch').innerHTML = branchOpts;
-            document.getElementById('audit-branch').innerHTML = `<option value="All">All Branches</option><option value="Central / Unassigned Branch">Central / Unassigned Branch</option>` + branchOpts;
             
             masterBranchList = ["Central / Unassigned Branch", ...branchesMaster.map(b => b.branch_name)];
+            
             if(selectedBranches.size === 0) selectedBranches = new Set(masterBranchList);
             renderBranchFilter(); updateBranchBtnText();
+            
+            if(selectedAuditBranches.size === 0) selectedAuditBranches = new Set(masterBranchList);
+            renderAuditBranchFilter(); updateAuditBranchBtnText();
         }
     }
     
@@ -761,7 +776,7 @@
         const payload = { 
             branch_name: document.getElementById('branch-name').value, 
             email: document.getElementById('branch-email').value,
-            password: document.getElementById('branch-password').value // Pass password option
+            password: document.getElementById('branch-password').value 
         };
         if (!payload.branch_name || !payload.email || !payload.password) return displayToast("Fill all fields", "error");
         
@@ -962,6 +977,7 @@
         
         setupSearchFilter('item-search-input');
         setupSearchFilter('branch-search-input');
+        setupSearchFilter('audit-branch-search-input');
         setupSearchFilter('staff-search-input');
     }
 
@@ -975,7 +991,7 @@
         });
     }
 
-    // Branch Multi-Select Render
+    // Branch Multi-Select Render (Reports Dashboard)
     function renderBranchFilter() {
       const container = document.getElementById('branch-checkboxes');
       container.innerHTML = masterBranchList.map(name => { const isChecked = selectedBranches.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="branch-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
@@ -987,6 +1003,20 @@
     function updateBranchBtnText() {
       const btn = document.getElementById('branch-btn-text');
       if(selectedBranches.size === masterBranchList.length && masterBranchList.length > 0) btn.innerText = "All Branches"; else if(selectedBranches.size === 0) btn.innerText = "No Branches"; else btn.innerText = `${selectedBranches.size} Selected`;
+    }
+
+    // Audit Branch Multi-Select Render (Daily Audit)
+    function renderAuditBranchFilter() {
+      const container = document.getElementById('audit-branch-checkboxes');
+      container.innerHTML = masterBranchList.map(name => { const isChecked = selectedAuditBranches.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="audit-branch-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
+      document.querySelectorAll('.audit-branch-cb').forEach(cb => { cb.addEventListener('change', (e) => { if(e.target.checked) selectedAuditBranches.add(e.target.value); else selectedAuditBranches.delete(e.target.value); updateAuditBranchBtnText(); }); });
+      
+      document.getElementById('btn-select-all-audit-branches').addEventListener('click', () => { document.querySelectorAll('.audit-branch-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = true; selectedAuditBranches.add(cb.value); }}); updateAuditBranchBtnText(); });
+      document.getElementById('btn-deselect-all-audit-branches').addEventListener('click', () => { document.querySelectorAll('.audit-branch-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = false; selectedAuditBranches.delete(cb.value); }}); updateAuditBranchBtnText(); });
+    }
+    function updateAuditBranchBtnText() {
+      const btn = document.getElementById('audit-branch-btn-text');
+      if(selectedAuditBranches.size === masterBranchList.length && masterBranchList.length > 0) btn.innerText = "All Branches"; else if(selectedAuditBranches.size === 0) btn.innerText = "No Branches"; else btn.innerText = `${selectedAuditBranches.size} Selected`;
     }
 
     // Staff Multi-Select Render
@@ -1156,7 +1186,10 @@
         document.querySelectorAll('.dropdown-content input[type="text"]').forEach(i => i.value = ""); 
         document.querySelectorAll('.check-wrap').forEach(lbl => lbl.style.display = 'flex');
         
-        if (masterBranchList.length > 0) { selectedBranches = new Set(masterBranchList); document.querySelectorAll('.branch-cb').forEach(cb => cb.checked = true); updateBranchBtnText(); }
+        if (masterBranchList.length > 0) { 
+            selectedBranches = new Set(masterBranchList); document.querySelectorAll('.branch-cb').forEach(cb => cb.checked = true); updateBranchBtnText(); 
+            selectedAuditBranches = new Set(masterBranchList); document.querySelectorAll('.audit-branch-cb').forEach(cb => cb.checked = true); updateAuditBranchBtnText(); 
+        }
         if (masterStaffList.length > 0) { selectedStaff = new Set(masterStaffList); document.querySelectorAll('.staff-cb').forEach(cb => cb.checked = true); updateStaffBtnText(); }
         if (masterItemList.length > 0) { selectedItems = new Set(masterItemList); document.querySelectorAll('.item-cb').forEach(cb => cb.checked = true); updateItemBtnText(); }
         
@@ -1171,13 +1204,14 @@
         const auditDateObj = fpAuditDate.selectedDates[0] || new Date();
         const startOfDay = new Date(auditDateObj); startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date(auditDateObj); endOfDay.setHours(23,59,59,999);
-        const selectedAuditBranch = document.getElementById('audit-branch').value;
         
         let expectedCount = 0; let scannedCount = 0; let missingCount = 0;
         let missingRowsHtml = '';
 
         allInventory.forEach(item => {
-            if(selectedAuditBranch !== "All" && item.branch !== selectedAuditBranch) return;
+            const itemBranch = item.branch || "Central / Unassigned Branch";
+            if(selectedAuditBranches.size > 0 && !selectedAuditBranches.has(itemBranch)) return;
+            
             expectedCount++; let isScannedToday = false;
             
             if(item.last_audited_at) {
@@ -1190,7 +1224,7 @@
                 missingRowsHtml += `<tr>
                     <td><strong>${item.product_name}</strong></td>
                     <td style="font-family: monospace;">${item.id}</td>
-                    <td><span class="badge bg-gray">${item.branch}</span></td>
+                    <td><span class="badge bg-gray">${itemBranch}</span></td>
                     <td>₹${(item.cost_price || 0).toFixed(2)}</td>
                     <td style="color: var(--danger); font-weight: 700;">₹${(item.price || 0).toFixed(2)}</td>
                 </tr>`;
@@ -1201,7 +1235,7 @@
         document.getElementById('audit-scanned').innerText = scannedCount;
         document.getElementById('audit-missing').innerText = missingCount;
 
-        if (missingCount === 0) { document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for this branch.</td></tr>`;
+        if (missingCount === 0) { document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for the selected branches.</td></tr>`;
         } else { document.getElementById('audit-tbody').innerHTML = missingRowsHtml; }
     });
 
