@@ -537,7 +537,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button id="btn-save-offer" class="btn-primary">Create Flexible Offer</button>
+            <button id="btn-save-offer" class="btn-primary">Create Offer</button>
             <button id="btn-cancel-offer" class="btn-secondary" style="display:none;">Cancel Edit</button>
         </div>
         
@@ -575,6 +575,7 @@
            <input type="hidden" id="edit-branch-id">
            <div><label class="filter-group"><label>Branch Name</label><input type="text" id="branch-name" class="input-field" placeholder="e.g. Murlipura"></label></div>
            <div><label class="filter-group"><label>Terminal Email Mapping</label><input type="email" id="branch-email" class="input-field" placeholder="branch@domain.com"></label></div>
+           <div><label class="filter-group"><label>Terminal Password</label><input type="password" id="branch-password" class="input-field" placeholder="Secure Password"></label></div>
         </div>
         <div style="display: flex; gap: 8px;">
             <button id="btn-save-branch" class="btn-primary">Add Branch</button>
@@ -660,6 +661,7 @@
             initReportsUI();
             initApprovalsListener();
             setupLiveSyncToggle();
+            startAutomatedDailyAudit(); // Initialize the 00:00 trigger
             
             loadSettingsFromCache();
             if (allBills.length === 0 && allInventory.length === 0) performFullDataSync();
@@ -756,8 +758,12 @@
     
     document.getElementById('btn-save-branch').addEventListener('click', async () => {
         const id = document.getElementById('edit-branch-id').value;
-        const payload = { branch_name: document.getElementById('branch-name').value, email: document.getElementById('branch-email').value };
-        if (!payload.branch_name || !payload.email) return displayToast("Fill all fields", "error");
+        const payload = { 
+            branch_name: document.getElementById('branch-name').value, 
+            email: document.getElementById('branch-email').value,
+            password: document.getElementById('branch-password').value // Pass password option
+        };
+        if (!payload.branch_name || !payload.email || !payload.password) return displayToast("Fill all fields", "error");
         
         let res; if (id) res = await supabase.from('branches_directory').update(payload).eq('id', id); else res = await supabase.from('branches_directory').insert(payload);
         if (res.error) displayToast(res.error.message, "error"); else { displayToast("Branch saved!"); document.getElementById('btn-cancel-branch').click(); loadBranches(); }
@@ -765,13 +771,17 @@
 
     window.editBranch = (id) => {
         const b = branchesMaster.find(i => i.id === id); if(!b) return;
-        document.getElementById('edit-branch-id').value = b.id; document.getElementById('branch-name').value = b.branch_name; document.getElementById('branch-email').value = b.email;
+        document.getElementById('edit-branch-id').value = b.id; 
+        document.getElementById('branch-name').value = b.branch_name; 
+        document.getElementById('branch-email').value = b.email;
+        document.getElementById('branch-password').value = b.password || "";
         document.getElementById('btn-save-branch').innerText = "Update Branch"; document.getElementById('btn-cancel-branch').style.display = "inline-flex";
         document.getElementById('branch-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     
     document.getElementById('btn-cancel-branch').addEventListener('click', () => {
-        document.getElementById('edit-branch-id').value = ""; document.getElementById('branch-name').value = ""; document.getElementById('branch-email').value = "";
+        document.getElementById('edit-branch-id').value = ""; document.getElementById('branch-name').value = ""; 
+        document.getElementById('branch-email').value = ""; document.getElementById('branch-password').value = "";
         document.getElementById('btn-save-branch').innerText = "Add Branch"; document.getElementById('btn-cancel-branch').style.display = "none";
     });
     window.delBranch = async (id) => { if(confirm("Remove branch?")) { await supabase.from('branches_directory').delete().eq('id', id); displayToast("Removed!"); loadBranches(); } };
@@ -840,7 +850,7 @@
                 const freeItems = o.free_items ? o.free_items : (o.free_item_sku ? [{sku: o.free_item_sku, qty: 1}] : []);
                 
                 const targetText = targetItems.map(t => `${t.qty}x ${t.sku}`).join('<br>');
-                
+                const isDiscount = o.offer_type === 'discount' || o.offer_type === 'combo';
                 let detailText = '';
                 if (o.offer_type === 'discount') { detailText = `Price Drop: ₹${o.new_price}`; } 
                 else if (o.offer_type === 'bogo') { detailText = freeItems.map(f => `+ ${f.qty}x ${f.sku}`).join('<br>'); } 
@@ -919,7 +929,7 @@
         document.getElementById('edit-offer-id').value = ""; fpOfferStart.clear(); fpOfferEnd.clear();
         document.getElementById('offer-targets-container').innerHTML = ''; window.addTargetItemRow();
         document.getElementById('offer-free-items-container').innerHTML = ''; window.addFreeItemRow();
-        document.getElementById('btn-save-offer').innerText = "Create Flexible Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
+        document.getElementById('btn-save-offer').innerText = "Create Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
     });
     window.delOffer = async (id) => { if(confirm("Remove this offer completely?")) { await supabase.from('offers').delete().eq('id', id); displayToast("Removed!"); loadOffers(); } };
 
@@ -936,6 +946,14 @@
                 btn.nextElementSibling.classList.toggle('show');
             });
         });
+
+        // Ensure clicking inside the dropdown content doesn't close it
+        document.querySelectorAll('.dropdown-content').forEach(content => {
+            content.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+            });
+        });
+
         window.addEventListener('click', (e) => {
             if(!e.target.closest('.custom-dropdown')) {
                 document.querySelectorAll('.dropdown-content').forEach(c => c.classList.remove('show'));
@@ -1186,6 +1204,20 @@
         if (missingCount === 0) { document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for this branch.</td></tr>`;
         } else { document.getElementById('audit-tbody').innerHTML = missingRowsHtml; }
     });
+
+    // Run audit report daily at 00:00 (Client-side automatic trigger if tab is open)
+    function startAutomatedDailyAudit() {
+        setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+                if(document.getElementById('btn-run-audit')) {
+                    // Ensures date is set to "today" dynamically before running
+                    fpAuditDate.setDate(new Date()); 
+                    document.getElementById('btn-run-audit').click();
+                }
+            }
+        }, 1000); // Check time every second
+    }
 
     // --- DISCOUNT APPROVALS ENGINE ---
     let approvalsPoller = null;
