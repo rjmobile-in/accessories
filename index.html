@@ -77,11 +77,11 @@
     .sync-wrapper { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--text-main); background: var(--card-bg); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--card-border); }
     
     .filter-bar { display: flex; align-items: flex-end; gap: 16px; padding: 16px 24px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; margin-bottom: 24px; flex-wrap: wrap; box-shadow: var(--shadow-soft);}
-    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
     .filter-group label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px;}
     
     .dropdown { position: relative; display: inline-block; }
-    .dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 8px); min-width: 260px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 16px; z-index: 1000; box-shadow: var(--shadow-soft); }
+    .dropdown-content { display: none; position: absolute; left: 0; top: calc(100% + 8px); min-width: 260px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 16px; z-index: 1000; box-shadow: var(--shadow-soft); }
     .dropdown-content.show { display: block; animation: dropIn 0.2s; }
     @keyframes dropIn { from {opacity:0; transform: translateY(-10px);} to {opacity:1; transform:translateY(0);} }
     
@@ -127,11 +127,13 @@
     
     .pagination-controls { display: flex; justify-content: center; align-items: center; padding: 16px 24px; border-top: 1px solid var(--card-border); background: var(--input-bg); }
     
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; align-items: start; }
     .action-links { display: flex; gap: 12px; }
     .edit-link { color: var(--primary); cursor: pointer; font-weight: 600; }
     .del-link { color: var(--danger); cursor: pointer; font-weight: 600; }
 
+    .dynamic-list-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    
     #preview-window { display: none; max-height: 600px; overflow-y: auto; background: #e5e7eb; border: 1px solid var(--card-border); border-radius: 12px; margin-top: 12px; padding: 20px; text-align: center; }
     #print-container { display: flex; flex-wrap: wrap; gap: 5mm; width: 190mm; margin: 0 auto; background: #fff; padding: 10mm; box-sizing: border-box; }
     .qr-wrapper { width: calc(25% - 3.75mm); border: 1px dashed #999; position: relative; padding: 8px; text-align: center; font-family: sans-serif; background: #fff; color: #000; border-radius: 2px; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; }
@@ -256,34 +258,54 @@
           <input type="text" id="report-end" class="input-field" style="margin: 0; width: 130px; padding: 10px;" placeholder="End Date" />
         </div>
         
-        <div class="filter-group">
+        <!-- Multi-Select Branch Filter -->
+        <div class="filter-group dropdown custom-dropdown">
           <label>Branch Station</label>
-          <select id="report-branch" class="input-field" style="margin: 0; width: 160px; padding: 10px;">
-            <option value="All">All Branches</option>
-            <option value="Central / Unassigned Branch">Central / Unassigned Branch</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>Staff / Cashier</label>
-          <select id="report-staff" class="input-field" style="margin: 0; width: 140px; padding: 10px;">
-            <option value="All">All Staff</option>
-          </select>
-        </div>
-
-        <div class="filter-group dropdown" id="item-filter-dropdown" style="margin-right: auto;">
-          <label>Filter Sold Items & Stock</label>
-          <button id="item-filter-btn" class="input-field" style="margin: 0; width: 220px; padding: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
-            <span id="item-btn-text">All Items Selected</span> 
+          <button class="input-field custom-dropdown-btn" style="margin: 0; width: 170px; padding: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
+            <span id="branch-btn-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">All Branches</span> 
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
           </button>
-          <div class="dropdown-content" style="top: calc(100% + 4px); right: auto; left: 0;" id="item-dropdown-box">
+          <div class="dropdown-content">
+            <input type="text" id="branch-search-input" class="input-field" placeholder="Search branches..." style="padding: 10px; margin-bottom: 12px;" autocomplete="off">
+            <div class="multi-select-actions">
+              <button id="btn-select-all-branches">Select All</button>
+              <button id="btn-deselect-all-branches">Deselect All</button>
+            </div>
+            <div id="branch-checkboxes" style="max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Multi-Select Staff Filter -->
+        <div class="filter-group dropdown custom-dropdown">
+          <label>Staff / Cashier</label>
+          <button class="input-field custom-dropdown-btn" style="margin: 0; width: 150px; padding: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
+            <span id="staff-btn-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">All Staff</span> 
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-content">
+            <input type="text" id="staff-search-input" class="input-field" placeholder="Search staff..." style="padding: 10px; margin-bottom: 12px;" autocomplete="off">
+            <div class="multi-select-actions">
+              <button id="btn-select-all-staff">Select All</button>
+              <button id="btn-deselect-all-staff">Deselect All</button>
+            </div>
+            <div id="staff-checkboxes" style="max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Multi-Select Item Filter -->
+        <div class="filter-group dropdown custom-dropdown" style="margin-right: auto;">
+          <label>Filter Sold Items & Stock</label>
+          <button class="input-field custom-dropdown-btn" style="margin: 0; width: 200px; padding: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
+            <span id="item-btn-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">All Items Selected</span> 
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-content">
             <input type="text" id="item-search-input" class="input-field" placeholder="Search products..." style="padding: 10px; margin-bottom: 12px;" autocomplete="off">
             <div class="multi-select-actions">
               <button id="btn-select-all-items">Select All</button>
               <button id="btn-deselect-all-items">Deselect All</button>
             </div>
-            <div class="staff-list-container" id="item-checkboxes" style="max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
+            <div id="item-checkboxes" style="max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
           </div>
         </div>
 
@@ -446,8 +468,9 @@
       </div>
     </div>
 
-    <!-- VIEW 5: MASTER SETTINGS (NEW) -->
+    <!-- VIEW 5: MASTER SETTINGS -->
     <div id="view-settings" class="app-view" style="display: none;">
+      
       <!-- ITEMS MASTER -->
       <div class="widget-card" style="margin-bottom: 24px;">
         <div class="section-title">📦 Product / Items Directory</div>
@@ -470,30 +493,56 @@
         </div>
       </div>
 
-      <!-- OFFERS & PROMOTIONS -->
+      <!-- OFFERS & PROMOTIONS (UPGRADED) -->
       <div class="widget-card" style="margin-bottom: 24px;">
-        <div class="section-title">🎁 Smart Offers & Promotions (Syncs to Terminal)</div>
-        <div class="form-grid">
-           <input type="hidden" id="edit-offer-id">
-           <div><label class="filter-group"><label>Target Item</label><select id="offer-target" class="input-field"></select></label></div>
-           <div><label class="filter-group"><label>Offer Type</label>
-             <select id="offer-type" class="input-field">
-               <option value="discount">Special Discount Price</option>
-               <option value="bogo">Buy 1 Get 1 (Free Item)</option>
-             </select>
-           </label></div>
-           <div id="offer-price-div"><label class="filter-group"><label>New Discounted Price (₹)</label><input type="number" id="offer-price" class="input-field" placeholder="e.g. 199"></label></div>
-           <div id="offer-free-div" style="display:none;"><label class="filter-group"><label>Free Item</label><select id="offer-free-sku" class="input-field"></select></label></div>
-           <div><label class="filter-group"><label>Start Date</label><input type="text" id="offer-start" class="input-field"></label></div>
-           <div><label class="filter-group"><label>End Date</label><input type="text" id="offer-end" class="input-field"></label></div>
+        <div class="section-title">🎁 Smart Offers & Promotions (Multi-Item Supported)</div>
+        <p style="color: var(--text-soft); font-size: 12px; margin-bottom: 16px;">Configure offers with multiple required items and multiple free items.</p>
+        
+        <input type="hidden" id="edit-offer-id">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 16px; align-items: start;">
+            
+            <!-- Target Rules -->
+            <div style="background: var(--input-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--card-border);">
+                <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 12px; display: block;">Required Purchase (Targets)</label>
+                <div id="offer-targets-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <button type="button" class="btn-secondary" id="btn-add-target-item" style="font-size: 12px; padding: 6px 12px; margin-top: 12px; width: 100%; justify-content: center;">+ Add Target Requirement</button>
+            </div>
+
+            <!-- Reward Rules -->
+            <div style="background: var(--input-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--card-border);">
+                <div class="filter-group" style="margin-bottom: 12px;">
+                    <label>Offer Reward Type</label>
+                    <select id="offer-type" class="input-field" style="margin-bottom: 0;">
+                        <option value="discount">Special Discount Price</option>
+                        <option value="bogo">Give Free Items (BOGO / Gifts)</option>
+                    </select>
+                </div>
+
+                <div id="offer-price-div">
+                    <label class="filter-group"><label>New Discounted Price (Total ₹)</label><input type="number" id="offer-price" class="input-field" placeholder="e.g. 199"></label>
+                </div>
+
+                <div id="offer-free-div" style="display:none;">
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Free Rewards Included</label>
+                    <div id="offer-free-items-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                    <button type="button" class="btn-secondary" id="btn-add-free-item" style="font-size: 12px; padding: 6px 12px; margin-top: 12px; width: 100%; justify-content: center;">+ Add Free Item</button>
+                </div>
+            </div>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <button id="btn-save-offer" class="btn-primary">Create Offer</button>
+
+        <div class="form-grid">
+           <div><label class="filter-group"><label>Validity Start Date</label><input type="text" id="offer-start" class="input-field"></label></div>
+           <div><label class="filter-group"><label>Validity End Date</label><input type="text" id="offer-end" class="input-field"></label></div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="btn-save-offer" class="btn-primary">Create Flexible Offer</button>
             <button id="btn-cancel-offer" class="btn-secondary" style="display:none;">Cancel Edit</button>
         </div>
-        <div class="table-responsive" style="margin-top: 16px;">
+        
+        <div class="table-responsive" style="margin-top: 24px;">
            <table>
-             <thead><tr><th>Target Item</th><th>Offer Detail</th><th>Validity</th><th>Status</th><th>Actions</th></tr></thead>
+             <thead><tr><th>Target Requirements</th><th>Offer Details / Rewards</th><th>Validity</th><th>Status</th><th>Actions</th></tr></thead>
              <tbody id="offers-tbody"></tbody>
            </table>
         </div>
@@ -546,37 +595,24 @@
 
     const SUPABASE_URL = 'https://upvhrarcbjfodzvohcpq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwdmhyYXJjYmpmb2R6dm9oY3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTEzMDcsImV4cCI6MjA5OTkyNzMwN30.4kFdGZM2B24jRbHCoZKCd7TbSXRF-3wEWqH2I4V9Fj0';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        storageKey: 'rj_admin_terminal_auth',
-      }
-    });
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storageKey: 'rj_admin_terminal_auth' } });
     const CACHE_KEY = 'rj_mobile_admin_cache';
     
     // Core Data
-    let allInventory = [];
-    let allBills = [];
-    let masterItemList = []; 
-    let productCostMap = {}; 
+    let allInventory = []; let allBills = []; let productCostMap = {}; 
+    let masterItemList = []; let masterBranchList = ["Central / Unassigned Branch"]; let masterStaffList = [];
+    
+    // Multi-Select Sets
     let selectedItems = new Set();
+    let selectedBranches = new Set(masterBranchList);
+    let selectedStaff = new Set();
+    
     let currentReportView = "transactions";
-    
-    let isFetchingData = false;
-    let limitCount = 50; 
-    let currentOffset = 0;
-    let hasMoreBills = false; 
-    
-    let approvalOffset = 0;
-    let hasMoreApprovals = false;
+    let isFetchingData = false; let limitCount = 50; let currentOffset = 0; let hasMoreBills = false; 
+    let approvalOffset = 0; let hasMoreApprovals = false;
 
-    let filteredTransactions = []; 
-    let itemAgg = {};
-    let staffAgg = {};
-    let branchAgg = {};
-    let stockAgg = {};
-    let fpStart, fpEnd, fpAuditDate;
-    
-    let activeSyncChannel = null;
+    let filteredTransactions = []; let itemAgg = {}; let staffAgg = {}; let branchAgg = {}; let stockAgg = {};
+    let fpStart, fpEnd, fpAuditDate; let activeSyncChannel = null;
 
     // Master DB Data
     let itemsMaster = []; let branchesMaster = []; let staffMaster = []; let offersMaster = [];
@@ -605,7 +641,6 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             
-            // 1. Initialize Settings UI Datepickers
             fpOfferStart = flatpickr("#offer-start", { enableTime: true, dateFormat: "Y-m-d H:i" });
             fpOfferEnd = flatpickr("#offer-end", { enableTime: true, dateFormat: "Y-m-d H:i" });
             
@@ -614,21 +649,15 @@
                 else { document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; }
             });
 
-            // 2. Fetch Master Data first (to populate dropdowns)
             await Promise.all([loadItems(), loadBranches(), loadStaff(), loadOffers()]);
-
-            // 3. Init standard UI
+            initDropdownInteractions();
             initReportsUI();
             initApprovalsListener();
             setupLiveSyncToggle();
             
             loadSettingsFromCache();
-            if (allBills.length === 0 && allInventory.length === 0) {
-                performFullDataSync();
-            } else {
-                processReportData();
-                if(document.getElementById('live-sync-toggle').checked) performFullDataSync();
-            }
+            if (allBills.length === 0 && allInventory.length === 0) performFullDataSync();
+            else { processReportData(); if(document.getElementById('live-sync-toggle').checked) performFullDataSync(); }
         } else {
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
@@ -656,17 +685,17 @@
         const { data, error } = await supabase.from('items_directory').select('*').order('name');
         if (!error) {
             itemsMaster = data;
-            const tbody = document.getElementById('items-tbody');
-            tbody.innerHTML = itemsMaster.map(i => `<tr>
+            document.getElementById('items-tbody').innerHTML = itemsMaster.map(i => `<tr>
                 <td><strong>${i.name}</strong></td><td>${i.sku}</td><td>₹${i.cost_price}</td><td>₹${i.selling_price}</td>
-                <td class="action-links"><span class="edit-link" onclick="window.editItem('${i.id}')">Edit</span> | <span class="del-link" onclick="window.delItem('${i.id}')">Delete</span></td>
+                <td class="action-links"><span class="edit-link" onclick="window.editItem('${i.id}')">Edit</span> | <span class="del-link" onclick="window.delItem('${i.id}')">Remove</span></td>
             </tr>`).join('');
             
-            // Populate Dropdowns
             const opts = `<option value="">-- Select Item --</option>` + itemsMaster.map(i => `<option value="${i.sku}">${i.name} (${i.sku})</option>`).join('');
             document.getElementById('qr-item-select').innerHTML = opts;
-            document.getElementById('offer-target').innerHTML = opts;
-            document.getElementById('offer-free-sku').innerHTML = opts;
+            
+            // Add initial empty rows for offers if they are empty
+            if(document.getElementById('offer-targets-container').children.length === 0) window.addTargetItemRow();
+            if(document.getElementById('offer-free-items-container').children.length === 0) window.addFreeItemRow();
         }
     }
 
@@ -678,9 +707,7 @@
         };
         if (!payload.name || !payload.sku || isNaN(payload.cost_price) || isNaN(payload.selling_price)) return displayToast("Fill all item fields correctly", "error");
         
-        let res;
-        if (id) res = await supabase.from('items_directory').update(payload).eq('id', id);
-        else res = await supabase.from('items_directory').insert(payload);
+        let res; if (id) res = await supabase.from('items_directory').update(payload).eq('id', id); else res = await supabase.from('items_directory').insert(payload);
         
         if (res.error) displayToast(res.error.message, "error");
         else { displayToast("Item saved!"); document.getElementById('btn-cancel-item').click(); loadItems(); }
@@ -689,9 +716,9 @@
     window.editItem = (id) => {
         const item = itemsMaster.find(i => i.id === id); if(!item) return;
         document.getElementById('edit-item-id').value = item.id; document.getElementById('item-name').value = item.name;
-        document.getElementById('item-sku').value = item.sku; document.getElementById('item-cost').value = item.cost_price;
-        document.getElementById('item-price').value = item.selling_price;
+        document.getElementById('item-sku').value = item.sku; document.getElementById('item-cost').value = item.cost_price; document.getElementById('item-price').value = item.selling_price;
         document.getElementById('btn-save-item').innerText = "Update Item"; document.getElementById('btn-cancel-item').style.display = "inline-flex";
+        document.getElementById('item-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     
     document.getElementById('btn-cancel-item').addEventListener('click', () => {
@@ -700,7 +727,7 @@
         document.getElementById('btn-save-item').innerText = "Add New Item"; document.getElementById('btn-cancel-item').style.display = "none";
     });
 
-    window.delItem = async (id) => { if(confirm("Delete this item from master database?")) { await supabase.from('items_directory').delete().eq('id', id); displayToast("Deleted!"); loadItems(); } };
+    window.delItem = async (id) => { if(confirm("Remove this item from master database?")) { await supabase.from('items_directory').delete().eq('id', id); displayToast("Removed!"); loadItems(); } };
 
     async function loadBranches() {
         const { data, error } = await supabase.from('branches_directory').select('*').order('branch_name');
@@ -708,16 +735,16 @@
             branchesMaster = data;
             document.getElementById('branch-tbody').innerHTML = branchesMaster.map(b => `<tr>
                 <td><strong>${b.branch_name}</strong></td><td>${b.email}</td>
-                <td class="action-links"><span class="edit-link" onclick="window.editBranch('${b.id}')">Edit</span> | <span class="del-link" onclick="window.delBranch('${b.id}')">Delete</span></td>
+                <td class="action-links"><span class="edit-link" onclick="window.editBranch('${b.id}')">Edit</span> | <span class="del-link" onclick="window.delBranch('${b.id}')">Remove</span></td>
             </tr>`).join('');
             
-            // Populate Branch Dropdowns across the app
-            const opts = branchesMaster.map(b => `<option value="${b.branch_name}">${b.branch_name}</option>`).join('');
-            document.getElementById('qr-branch').innerHTML = opts;
+            const branchOpts = branchesMaster.map(b => `<option value="${b.branch_name}">${b.branch_name}</option>`).join('');
+            document.getElementById('qr-branch').innerHTML = branchOpts;
+            document.getElementById('audit-branch').innerHTML = `<option value="All">All Branches</option><option value="Central / Unassigned Branch">Central / Unassigned Branch</option>` + branchOpts;
             
-            const filterOpts = `<option value="All">All Branches</option><option value="Central / Unassigned Branch">Central / Unassigned Branch</option>` + opts;
-            document.getElementById('report-branch').innerHTML = filterOpts;
-            document.getElementById('audit-branch').innerHTML = filterOpts;
+            masterBranchList = ["Central / Unassigned Branch", ...branchesMaster.map(b => b.branch_name)];
+            if(selectedBranches.size === 0) selectedBranches = new Set(masterBranchList);
+            renderBranchFilter(); updateBranchBtnText();
         }
     }
     
@@ -734,13 +761,14 @@
         const b = branchesMaster.find(i => i.id === id); if(!b) return;
         document.getElementById('edit-branch-id').value = b.id; document.getElementById('branch-name').value = b.branch_name; document.getElementById('branch-email').value = b.email;
         document.getElementById('btn-save-branch').innerText = "Update Branch"; document.getElementById('btn-cancel-branch').style.display = "inline-flex";
+        document.getElementById('branch-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     
     document.getElementById('btn-cancel-branch').addEventListener('click', () => {
         document.getElementById('edit-branch-id').value = ""; document.getElementById('branch-name').value = ""; document.getElementById('branch-email').value = "";
         document.getElementById('btn-save-branch').innerText = "Add Branch"; document.getElementById('btn-cancel-branch').style.display = "none";
     });
-    window.delBranch = async (id) => { if(confirm("Delete branch?")) { await supabase.from('branches_directory').delete().eq('id', id); displayToast("Deleted!"); loadBranches(); } };
+    window.delBranch = async (id) => { if(confirm("Remove branch?")) { await supabase.from('branches_directory').delete().eq('id', id); displayToast("Removed!"); loadBranches(); } };
 
     async function loadStaff() {
         const { data, error } = await supabase.from('staff_directory').select('*').order('name');
@@ -748,11 +776,12 @@
             staffMaster = data;
             document.getElementById('staff-tbody').innerHTML = staffMaster.map(s => `<tr>
                 <td><strong>${s.name}</strong></td>
-                <td class="action-links"><span class="edit-link" onclick="window.editStaff('${s.id}')">Edit</span> | <span class="del-link" onclick="window.delStaff('${s.id}')">Delete</span></td>
+                <td class="action-links"><span class="edit-link" onclick="window.editStaff('${s.id}')">Edit</span> | <span class="del-link" onclick="window.delStaff('${s.id}')">Remove</span></td>
             </tr>`).join('');
             
-            // Populate Report filter dropdown
-            document.getElementById('report-staff').innerHTML = `<option value="All">All Staff</option>` + staffMaster.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            masterStaffList = staffMaster.map(s => s.name);
+            if(selectedStaff.size === 0) selectedStaff = new Set(masterStaffList);
+            renderStaffFilter(); updateStaffBtnText();
         }
     }
 
@@ -766,12 +795,35 @@
         const s = staffMaster.find(i => i.id === id); if(!s) return;
         document.getElementById('edit-staff-id').value = s.id; document.getElementById('staff-name').value = s.name;
         document.getElementById('btn-save-staff').innerText = "Update Staff"; document.getElementById('btn-cancel-staff').style.display = "inline-flex";
+        document.getElementById('staff-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     document.getElementById('btn-cancel-staff').addEventListener('click', () => {
         document.getElementById('edit-staff-id').value = ""; document.getElementById('staff-name').value = "";
         document.getElementById('btn-save-staff').innerText = "Add Staff"; document.getElementById('btn-cancel-staff').style.display = "none";
     });
-    window.delStaff = async (id) => { if(confirm("Delete staff?")) { await supabase.from('staff_directory').delete().eq('id', id); displayToast("Deleted!"); loadStaff(); } };
+    window.delStaff = async (id) => { if(confirm("Remove staff?")) { await supabase.from('staff_directory').delete().eq('id', id); displayToast("Removed!"); loadStaff(); } };
+
+    // --- OFFERS MANAGEMENT (MULTI-ITEM CAPABLE) ---
+    window.getOfferItemOptions = (selectedSku = '') => {
+        return `<option value="">-- Select Item --</option>` + itemsMaster.map(i => `<option value="${i.sku}" ${i.sku === selectedSku ? 'selected' : ''}>${i.name} (${i.sku})</option>`).join('');
+    };
+    window.addTargetItemRow = (sku = '', qty = 1) => {
+        const div = document.createElement('div'); div.className = 'dynamic-list-row';
+        div.innerHTML = `<select class="input-field offer-target-sku" style="margin: 0; flex: 2;">${window.getOfferItemOptions(sku)}</select>
+            <input type="number" class="input-field offer-target-qty" style="margin: 0; flex: 1;" placeholder="Qty" value="${qty}" min="1">
+            <button type="button" class="btn-danger-outline" onclick="this.parentElement.remove()" style="padding: 8px;">X</button>`;
+        document.getElementById('offer-targets-container').appendChild(div);
+    };
+    window.addFreeItemRow = (sku = '', qty = 1) => {
+        const div = document.createElement('div'); div.className = 'dynamic-list-row';
+        div.innerHTML = `<select class="input-field offer-free-sku" style="margin: 0; flex: 2;">${window.getOfferItemOptions(sku)}</select>
+            <input type="number" class="input-field offer-free-qty" style="margin: 0; flex: 1;" placeholder="Qty" value="${qty}" min="1">
+            <button type="button" class="btn-danger-outline" onclick="this.parentElement.remove()" style="padding: 8px;">X</button>`;
+        document.getElementById('offer-free-items-container').appendChild(div);
+    };
+
+    document.getElementById('btn-add-target-item').addEventListener('click', () => window.addTargetItemRow());
+    document.getElementById('btn-add-free-item').addEventListener('click', () => window.addFreeItemRow());
 
     async function loadOffers() {
         const { data, error } = await supabase.from('offers').select('*').order('start_date');
@@ -779,16 +831,23 @@
             offersMaster = data;
             document.getElementById('offers-tbody').innerHTML = offersMaster.map(o => {
                 const isDiscount = o.offer_type === 'discount';
-                const detail = isDiscount ? `New Price: ₹${o.new_price}` : `Free SKU: ${o.free_item_sku}`;
-                const validText = `${new Date(o.start_date).toLocaleDateString()} to ${new Date(o.end_date).toLocaleDateString()}`;
                 
+                // Read new arrays, fallback to old single strings for legacy compatibility
+                const targetItems = o.target_items ? o.target_items : (o.target_item_sku ? [{sku: o.target_item_sku, qty: 1}] : []);
+                const freeItems = o.free_items ? o.free_items : (o.free_item_sku ? [{sku: o.free_item_sku, qty: 1}] : []);
+                
+                const targetText = targetItems.map(t => `${t.qty}x ${t.sku}`).join('<br>');
+                let detailText = isDiscount ? `Price Drop: ₹${o.new_price}` : freeItems.map(f => `+ ${f.qty}x ${f.sku}`).join('<br>');
+                
+                const validText = `${new Date(o.start_date).toLocaleDateString()} to ${new Date(o.end_date).toLocaleDateString()}`;
                 const now = new Date(); const isLive = now >= new Date(o.start_date) && now <= new Date(o.end_date);
                 const statusBadge = isLive ? `<span class="badge bg-green">Live Active</span>` : `<span class="badge bg-gray">Inactive</span>`;
                 
                 return `<tr>
-                <td><strong>${o.target_item_sku}</strong></td><td><span class="badge bg-warning">${isDiscount ? 'Special Price' : 'BOGO (Free)'}</span></td><td>${detail}</td>
+                <td style="font-size: 12px; font-weight: 600;">${targetText}</td>
+                <td><span class="badge bg-warning" style="margin-bottom: 4px;">${isDiscount ? 'Special Price' : 'BOGO (Gifts)'}</span><br><span style="font-size: 12px; font-weight: 600;">${detailText}</span></td>
                 <td><small>${validText}</small></td><td>${statusBadge}</td>
-                <td class="action-links"><span class="edit-link" onclick="window.editOffer('${o.id}')">Edit</span> | <span class="del-link" onclick="window.delOffer('${o.id}')">Delete</span></td>
+                <td class="action-links"><span class="edit-link" onclick="window.editOffer('${o.id}')">Edit</span> | <span class="del-link" onclick="window.delOffer('${o.id}')">Remove</span></td>
             </tr>`}).join('');
         }
     }
@@ -796,41 +855,149 @@
     document.getElementById('btn-save-offer').addEventListener('click', async () => {
         const id = document.getElementById('edit-offer-id').value;
         const type = document.getElementById('offer-type').value;
+        
+        const target_items = [];
+        document.querySelectorAll('#offer-targets-container > div').forEach(row => {
+            const sku = row.querySelector('.offer-target-sku').value; const qty = parseInt(row.querySelector('.offer-target-qty').value);
+            if (sku && qty > 0) target_items.push({ sku, qty });
+        });
+        
+        const free_items = [];
+        document.querySelectorAll('#offer-free-items-container > div').forEach(row => {
+            const sku = row.querySelector('.offer-free-sku').value; const qty = parseInt(row.querySelector('.offer-free-qty').value);
+            if (sku && qty > 0) free_items.push({ sku, qty });
+        });
+
+        if (target_items.length === 0) return displayToast("Add at least one target requirement", "error");
+        
         const payload = { 
-            target_item_sku: document.getElementById('offer-target').value, offer_type: type,
+            offer_type: type,
+            target_items: target_items,
+            target_item_sku: target_items[0]?.sku || null, // fallback
             new_price: type === 'discount' ? parseFloat(document.getElementById('offer-price').value) : null,
-            free_item_sku: type === 'bogo' ? document.getElementById('offer-free-sku').value : null,
+            free_items: type === 'bogo' ? free_items : null,
+            free_item_sku: (type === 'bogo' && free_items.length > 0) ? free_items[0].sku : null, // fallback
             start_date: document.getElementById('offer-start').value, end_date: document.getElementById('offer-end').value
         };
-        if (!payload.target_item_sku || !payload.start_date || !payload.end_date) return displayToast("Required fields missing", "error");
+        
+        if (!payload.start_date || !payload.end_date || (type === 'bogo' && free_items.length === 0)) return displayToast("Required fields/items missing", "error");
         
         let res; if (id) res = await supabase.from('offers').update(payload).eq('id', id); else res = await supabase.from('offers').insert(payload);
-        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Offer saved! Syncs automatically to Terminal."); document.getElementById('btn-cancel-offer').click(); loadOffers(); }
+        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Offer saved! Syncs to Terminal."); document.getElementById('btn-cancel-offer').click(); loadOffers(); }
     });
 
     window.editOffer = (id) => {
         const o = offersMaster.find(i => i.id === id); if(!o) return;
-        document.getElementById('edit-offer-id').value = o.id; document.getElementById('offer-target').value = o.target_item_sku;
+        document.getElementById('edit-offer-id').value = o.id; 
+        
         document.getElementById('offer-type').value = o.offer_type; document.getElementById('offer-type').dispatchEvent(new Event('change'));
-        if (o.offer_type === 'discount') document.getElementById('offer-price').value = o.new_price; else document.getElementById('offer-free-sku').value = o.free_item_sku;
+        if (o.offer_type === 'discount') document.getElementById('offer-price').value = o.new_price; 
+        
+        document.getElementById('offer-targets-container').innerHTML = '';
+        const tItems = o.target_items ? o.target_items : (o.target_item_sku ? [{sku: o.target_item_sku, qty: 1}] : []);
+        tItems.forEach(t => window.addTargetItemRow(t.sku, t.qty));
+        if(tItems.length === 0) window.addTargetItemRow();
+
+        document.getElementById('offer-free-items-container').innerHTML = '';
+        const fItems = o.free_items ? o.free_items : (o.free_item_sku ? [{sku: o.free_item_sku, qty: 1}] : []);
+        fItems.forEach(f => window.addFreeItemRow(f.sku, f.qty));
+        if(fItems.length === 0) window.addFreeItemRow();
+
         fpOfferStart.setDate(o.start_date); fpOfferEnd.setDate(o.end_date);
         document.getElementById('btn-save-offer').innerText = "Update Offer"; document.getElementById('btn-cancel-offer').style.display = "inline-flex";
+        document.getElementById('offer-targets-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
+    
     document.getElementById('btn-cancel-offer').addEventListener('click', () => {
         document.getElementById('edit-offer-id').value = ""; fpOfferStart.clear(); fpOfferEnd.clear();
-        document.getElementById('btn-save-offer').innerText = "Create Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
+        document.getElementById('offer-targets-container').innerHTML = ''; window.addTargetItemRow();
+        document.getElementById('offer-free-items-container').innerHTML = ''; window.addFreeItemRow();
+        document.getElementById('btn-save-offer').innerText = "Create Flexible Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
     });
-    window.delOffer = async (id) => { if(confirm("Remove this offer completely?")) { await supabase.from('offers').delete().eq('id', id); displayToast("Deleted!"); loadOffers(); } };
+    window.delOffer = async (id) => { if(confirm("Remove this offer completely?")) { await supabase.from('offers').delete().eq('id', id); displayToast("Removed!"); loadOffers(); } };
 
     // ==========================================
 
+    // --- MULTI-SELECT DROPDOWNS LOGIC ---
+    function initDropdownInteractions() {
+        document.querySelectorAll('.custom-dropdown-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.dropdown-content').forEach(c => {
+                    if (c !== btn.nextElementSibling) c.classList.remove('show');
+                });
+                btn.nextElementSibling.classList.toggle('show');
+            });
+        });
+        window.addEventListener('click', (e) => {
+            if(!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-content').forEach(c => c.classList.remove('show'));
+            }
+        });
+        
+        setupSearchFilter('item-search-input');
+        setupSearchFilter('branch-search-input');
+        setupSearchFilter('staff-search-input');
+    }
 
-    // --- USER SETTINGS CACHE ---
+    function setupSearchFilter(inputId) {
+        document.getElementById(inputId).addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const box = e.target.closest('.dropdown-content');
+            box.querySelectorAll('.check-wrap').forEach(lbl => {
+                lbl.style.display = lbl.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
+            });
+        });
+    }
+
+    // Branch Multi-Select Render
+    function renderBranchFilter() {
+      const container = document.getElementById('branch-checkboxes');
+      container.innerHTML = masterBranchList.map(name => { const isChecked = selectedBranches.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="branch-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
+      document.querySelectorAll('.branch-cb').forEach(cb => { cb.addEventListener('change', (e) => { if(e.target.checked) selectedBranches.add(e.target.value); else selectedBranches.delete(e.target.value); updateBranchBtnText(); fetchBillsFromDatabase(false); }); });
+      
+      document.getElementById('btn-select-all-branches').addEventListener('click', () => { document.querySelectorAll('.branch-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = true; selectedBranches.add(cb.value); }}); updateBranchBtnText(); fetchBillsFromDatabase(false); });
+      document.getElementById('btn-deselect-all-branches').addEventListener('click', () => { document.querySelectorAll('.branch-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = false; selectedBranches.delete(cb.value); }}); updateBranchBtnText(); fetchBillsFromDatabase(false); });
+    }
+    function updateBranchBtnText() {
+      const btn = document.getElementById('branch-btn-text');
+      if(selectedBranches.size === masterBranchList.length && masterBranchList.length > 0) btn.innerText = "All Branches"; else if(selectedBranches.size === 0) btn.innerText = "No Branches"; else btn.innerText = `${selectedBranches.size} Selected`;
+    }
+
+    // Staff Multi-Select Render
+    function renderStaffFilter() {
+      const container = document.getElementById('staff-checkboxes');
+      container.innerHTML = masterStaffList.map(name => { const isChecked = selectedStaff.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="staff-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
+      document.querySelectorAll('.staff-cb').forEach(cb => { cb.addEventListener('change', (e) => { if(e.target.checked) selectedStaff.add(e.target.value); else selectedStaff.delete(e.target.value); updateStaffBtnText(); fetchBillsFromDatabase(false); }); });
+      
+      document.getElementById('btn-select-all-staff').addEventListener('click', () => { document.querySelectorAll('.staff-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = true; selectedStaff.add(cb.value); }}); updateStaffBtnText(); fetchBillsFromDatabase(false); });
+      document.getElementById('btn-deselect-all-staff').addEventListener('click', () => { document.querySelectorAll('.staff-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = false; selectedStaff.delete(cb.value); }}); updateStaffBtnText(); fetchBillsFromDatabase(false); });
+    }
+    function updateStaffBtnText() {
+      const btn = document.getElementById('staff-btn-text');
+      if(selectedStaff.size === masterStaffList.length && masterStaffList.length > 0) btn.innerText = "All Staff"; else if(selectedStaff.size === 0) btn.innerText = "No Staff"; else btn.innerText = `${selectedStaff.size} Selected`;
+    }
+
+    // Item Multi-Select Render
+    function renderItemFilter() {
+      const container = document.getElementById('item-checkboxes');
+      container.innerHTML = masterItemList.map(name => { const isChecked = selectedItems.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="item-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
+      document.querySelectorAll('.item-cb').forEach(cb => { cb.addEventListener('change', (e) => { if(e.target.checked) selectedItems.add(e.target.value); else selectedItems.delete(e.target.value); updateItemBtnText(); processReportData(); }); });
+      
+      document.getElementById('btn-select-all-items').addEventListener('click', () => { document.querySelectorAll('.item-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = true; selectedItems.add(cb.value); }}); updateItemBtnText(); processReportData(); });
+      document.getElementById('btn-deselect-all-items').addEventListener('click', () => { document.querySelectorAll('.item-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = false; selectedItems.delete(cb.value); }}); updateItemBtnText(); processReportData(); });
+    }
+    function updateItemBtnText() {
+      const btn = document.getElementById('item-btn-text');
+      if(selectedItems.size === masterItemList.length && masterItemList.length > 0) btn.innerText = "All Items Selected"; else if(selectedItems.size === 0) btn.innerText = "No Items Selected"; else btn.innerText = `${selectedItems.size} Selected`;
+    }
+
+    // --- CACHE & PERSISTENCE ---
     document.getElementById('btn-save-settings').addEventListener('click', () => {
         const settings = {
             sync: document.getElementById('live-sync-toggle').checked,
-            branch: document.getElementById('report-branch').value,
-            staff: document.getElementById('report-staff').value
+            branches: Array.from(selectedBranches),
+            staff: Array.from(selectedStaff)
         };
         localStorage.setItem('rj_admin_settings', JSON.stringify(settings));
         displayToast("Filters & Settings saved to cache!", "success");
@@ -841,52 +1008,49 @@
             const cachedSettings = localStorage.getItem('rj_admin_settings');
             if(cachedSettings) {
                 const settings = JSON.parse(cachedSettings);
-                if(settings.sync !== undefined) {
-                    const toggle = document.getElementById('live-sync-toggle');
-                    toggle.checked = settings.sync;
-                }
-                if(settings.branch) document.getElementById('report-branch').value = settings.branch;
-                if(settings.staff) document.getElementById('report-staff').value = settings.staff;
+                if(settings.sync !== undefined) { document.getElementById('live-sync-toggle').checked = settings.sync; }
+                if(settings.branches) { selectedBranches = new Set(settings.branches); renderBranchFilter(); updateBranchBtnText(); }
+                if(settings.staff) { selectedStaff = new Set(settings.staff); renderStaffFilter(); updateStaffBtnText(); }
             }
             loadFromLocalCache(); 
             toggleLiveSyncChannel(); 
         } catch (e) { }
     }
 
+    function loadFromLocalCache() {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if(cached) {
+                const parsed = JSON.parse(cached);
+                allBills = parsed.bills || []; allInventory = parsed.inventory || [];
+                masterItemList = parsed.items || [];
+                if (masterItemList.length > 0 && selectedItems.size === 0) { selectedItems = new Set(masterItemList); renderItemFilter(); updateItemBtnText(); }
+                return (allBills.length > 0 || allInventory.length > 0);
+            }
+        } catch (e) { } return false;
+    }
+
+    function saveToLocalCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ bills: allBills, inventory: allInventory, items: masterItemList })); } catch (e) { } }
+
     // --- LIVE SYNC TOGGLE ENGINE ---
     let syncPoller = null; 
-
     function setupLiveSyncToggle() {
         document.getElementById('live-sync-toggle').addEventListener('change', (e) => {
             toggleLiveSyncChannel();
-            if(e.target.checked) {
-                displayToast("Live Auto-Sync Enabled", "success");
-                performFullDataSync();
-            } else {
-                displayToast("Live Auto-Sync Paused", "primary");
-            }
+            if(e.target.checked) { displayToast("Live Auto-Sync Enabled", "success"); performFullDataSync(); } else { displayToast("Live Auto-Sync Paused", "primary"); }
         });
     }
 
     function toggleLiveSyncChannel() {
         const isLive = document.getElementById('live-sync-toggle').checked;
-        
         if(isLive) {
             if(!activeSyncChannel) {
                 activeSyncChannel = supabase.channel('dashboard_sync')
-                  .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => {
-                      fetchBillsFromDatabase(false); 
-                  })
-                  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_pieces' }, () => {
-                      fetchFullInventory(); 
-                  }).subscribe();
+                  .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => { fetchBillsFromDatabase(false); })
+                  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_pieces' }, () => { fetchFullInventory(); }).subscribe();
             }
-            
             if(syncPoller) clearInterval(syncPoller);
-            syncPoller = setInterval(() => {
-                if(!isFetchingData) { fetchBillsFromDatabase(false); }
-            }, 10000); 
-            
+            syncPoller = setInterval(() => { if(!isFetchingData) { fetchBillsFromDatabase(false); } }, 10000); 
         } else {
             if(activeSyncChannel) { supabase.removeChannel(activeSyncChannel); activeSyncChannel = null; }
             if(syncPoller) { clearInterval(syncPoller); syncPoller = null; }
@@ -895,24 +1059,17 @@
 
     async function performFullDataSync() {
         if(isFetchingData) return;
-        try {
-            await fetchFullInventory(); 
-            await fetchBillsFromDatabase(false); 
-        } catch (e) { console.error(e); } 
+        try { await fetchFullInventory(); await fetchBillsFromDatabase(false); } catch (e) { console.error(e); } 
     }
 
     // --- FETCH INVENTORY ---
     async function fetchFullInventory() {
         const { data, error } = await supabase.from('inventory_pieces').select('*').eq('status', 'Available');
         if(error) throw error;
-        
         allInventory = []; productCostMap = {}; let tempItems = new Set();
         data.forEach(item => { 
             allInventory.push(item);
-            if (item.product_name) {
-                if (item.cost_price) productCostMap[item.product_name] = item.cost_price;
-                tempItems.add(item.product_name);
-            }
+            if (item.product_name) { if (item.cost_price) productCostMap[item.product_name] = item.cost_price; tempItems.add(item.product_name); }
         });
         
         masterItemList = Array.from(tempItems).sort();
@@ -936,11 +1093,9 @@
               .lte('created_at', endDateQuery.toISOString())
               .order('created_at', { ascending: false });
 
-          const selectedBranch = document.getElementById('report-branch').value;
-          const selectedStaff = document.getElementById('report-staff').value;
-          
-          if (selectedBranch !== "All") queryBuilder = queryBuilder.eq('branch', selectedBranch);
-          if (selectedStaff !== "All") queryBuilder = queryBuilder.eq('staff_name', selectedStaff);
+          // Apply array filters via 'in'
+          if (selectedBranches.size > 0 && selectedBranches.size < masterBranchList.length) queryBuilder = queryBuilder.in('branch', Array.from(selectedBranches));
+          if (selectedStaff.size > 0 && selectedStaff.size < masterStaffList.length) queryBuilder = queryBuilder.in('staff_name', Array.from(selectedStaff));
 
           const { data, error } = await queryBuilder.range(currentOffset, currentOffset + limitCount - 1);
           if(error) throw error;
@@ -948,8 +1103,7 @@
           let tempItems = new Set(masterItemList);
 
           if (data && data.length > 0) {
-              currentOffset += data.length;
-              hasMoreBills = data.length === limitCount; 
+              currentOffset += data.length; hasMoreBills = data.length === limitCount; 
               data.forEach(bill => {
                   allBills.push(bill);
                   if (bill.items) Object.values(bill.items).forEach(item => { if (item.name) tempItems.add(item.name); });
@@ -964,32 +1118,49 @@
       } finally { isFetchingData = false; btnLoad.innerText = "Load Next 50 Records ↓"; }
     }
 
+    // --- UI/REPORTS INITIALIZATION ---
+    function initReportsUI() {
+      const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30); thirtyDaysAgo.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(23,59,59,999);
+      fpStart = flatpickr("#report-start", { defaultDate: thirtyDaysAgo, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y", onChange: () => fetchBillsFromDatabase(false) });
+      fpEnd = flatpickr("#report-end", { defaultDate: today, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y", onChange: () => fetchBillsFromDatabase(false) });
+      fpAuditDate = flatpickr("#audit-date", { defaultDate: today, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y" });
+
+      document.getElementById('btn-reset-filters').addEventListener('click', () => {
+        fpStart.setDate(thirtyDaysAgo, false); fpEnd.setDate(today, false);
+        document.querySelectorAll('.dropdown-content input[type="text"]').forEach(i => i.value = ""); 
+        document.querySelectorAll('.check-wrap').forEach(lbl => lbl.style.display = 'flex');
+        
+        if (masterBranchList.length > 0) { selectedBranches = new Set(masterBranchList); document.querySelectorAll('.branch-cb').forEach(cb => cb.checked = true); updateBranchBtnText(); }
+        if (masterStaffList.length > 0) { selectedStaff = new Set(masterStaffList); document.querySelectorAll('.staff-cb').forEach(cb => cb.checked = true); updateStaffBtnText(); }
+        if (masterItemList.length > 0) { selectedItems = new Set(masterItemList); document.querySelectorAll('.item-cb').forEach(cb => cb.checked = true); updateItemBtnText(); }
+        
+        fetchBillsFromDatabase(false);
+      });
+
+      document.getElementById('btn-load-more').addEventListener('click', () => { fetchBillsFromDatabase(true); });
+    }
+
     // --- DAILY AUDIT LOGIC ---
     document.getElementById('btn-run-audit').addEventListener('click', () => {
         const auditDateObj = fpAuditDate.selectedDates[0] || new Date();
         const startOfDay = new Date(auditDateObj); startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date(auditDateObj); endOfDay.setHours(23,59,59,999);
-        const selectedBranch = document.getElementById('audit-branch').value;
+        const selectedAuditBranch = document.getElementById('audit-branch').value;
         
         let expectedCount = 0; let scannedCount = 0; let missingCount = 0;
         let missingRowsHtml = '';
 
         allInventory.forEach(item => {
-            if(selectedBranch !== "All" && item.branch !== selectedBranch) return;
-            
-            expectedCount++;
-            let isScannedToday = false;
+            if(selectedAuditBranch !== "All" && item.branch !== selectedAuditBranch) return;
+            expectedCount++; let isScannedToday = false;
             
             if(item.last_audited_at) {
                 const auditTime = new Date(item.last_audited_at);
-                if(auditTime >= startOfDay && auditTime <= endOfDay) {
-                    isScannedToday = true;
-                }
+                if(auditTime >= startOfDay && auditTime <= endOfDay) { isScannedToday = true; }
             }
 
-            if(isScannedToday) {
-                scannedCount++;
-            } else {
+            if(isScannedToday) { scannedCount++; } else {
                 missingCount++;
                 missingRowsHtml += `<tr>
                     <td><strong>${item.product_name}</strong></td>
@@ -1005,27 +1176,19 @@
         document.getElementById('audit-scanned').innerText = scannedCount;
         document.getElementById('audit-missing').innerText = missingCount;
 
-        if (missingCount === 0) {
-            document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for this branch.</td></tr>`;
-        } else {
-            document.getElementById('audit-tbody').innerHTML = missingRowsHtml;
-        }
+        if (missingCount === 0) { document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for this branch.</td></tr>`;
+        } else { document.getElementById('audit-tbody').innerHTML = missingRowsHtml; }
     });
 
     // --- DISCOUNT APPROVALS ENGINE ---
     let approvalsPoller = null;
-
     async function fetchApprovalsList(isLoadMore = false) {
         if (!isLoadMore) approvalOffset = 0;
-        
         const btnLoad = document.getElementById('btn-load-more-approvals');
         if(isLoadMore) btnLoad.innerText = "Loading...";
 
         const limit = 50;
-        const { data, error } = await supabase.from('discount_requests').select('*')
-            .order('created_at', { ascending: false })
-            .range(approvalOffset, approvalOffset + limit - 1);
-            
+        const { data, error } = await supabase.from('discount_requests').select('*').order('created_at', { ascending: false }).range(approvalOffset, approvalOffset + limit - 1);
         if(error) return;
 
         const tbody = document.getElementById('approvals-tbody'); 
@@ -1037,13 +1200,10 @@
 
         if (!data || data.length === 0) {
             if(!isLoadMore) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-soft); padding: 40px;">No requests found.</td></tr>';
-            document.getElementById('approval-pagination-controls').style.display = 'none';
-            return;
+            document.getElementById('approval-pagination-controls').style.display = 'none'; return;
         }
 
-        hasMoreApprovals = data.length === limit;
-        approvalOffset += data.length;
-        
+        hasMoreApprovals = data.length === limit; approvalOffset += data.length;
         let rowsHtml = '';
         data.forEach(req => {
           const timeStr = new Date(req.created_at).toLocaleTimeString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -1051,10 +1211,9 @@
           const subtotalDisplay = req.bill_subtotal ? `₹${parseFloat(req.bill_subtotal).toFixed(2)}` : "N/A";
           
           let actionUI = '';
-          if (req.status === 'Pending') {
-              actionUI = `<div style="display: flex; gap: 8px;"><button class="btn-success-outline" onclick="window.actionDiscount('${req.id}', 'Approved')">Approve</button><button class="btn-danger-outline" onclick="window.actionDiscount('${req.id}', 'Rejected')">Reject</button></div>`;
-          } else if (req.status === 'Approved') { actionUI = `<span class="badge bg-green">Approved</span>`;
-          } else { actionUI = `<span class="badge bg-red">Rejected</span>`; }
+          if (req.status === 'Pending') { actionUI = `<div style="display: flex; gap: 8px;"><button class="btn-success-outline" onclick="window.actionDiscount('${req.id}', 'Approved')">Approve</button><button class="btn-danger-outline" onclick="window.actionDiscount('${req.id}', 'Rejected')">Reject</button></div>`; } 
+          else if (req.status === 'Approved') { actionUI = `<span class="badge bg-green">Approved</span>`; } 
+          else { actionUI = `<span class="badge bg-red">Rejected</span>`; }
           
           rowsHtml += `<tr>
               <td><div style="color: var(--text-soft); font-size: 12px;">${timeStr}</div></td>
@@ -1073,27 +1232,19 @@
 
     function initApprovalsListener() {
       fetchApprovalsList(false);
-      
       const btnLoad = document.getElementById('btn-load-more-approvals');
       const newBtn = btnLoad.cloneNode(true); btnLoad.parentNode.replaceChild(newBtn, btnLoad);
       document.getElementById('btn-load-more-approvals').addEventListener('click', () => fetchApprovalsList(true));
       
-      supabase.channel('public:discount_requests').on('postgres_changes', { event: '*', schema: 'public', table: 'discount_requests' }, payload => {
-          fetchApprovalsList(false); 
-      }).subscribe();
-
+      supabase.channel('public:discount_requests').on('postgres_changes', { event: '*', schema: 'public', table: 'discount_requests' }, payload => { fetchApprovalsList(false); }).subscribe();
       if(approvalsPoller) clearInterval(approvalsPoller);
-      approvalsPoller = setInterval(() => {
-          if (document.getElementById('view-approvals').style.display === 'block') { fetchApprovalsList(false); }
-      }, 5000);
+      approvalsPoller = setInterval(() => { if (document.getElementById('view-approvals').style.display === 'block') { fetchApprovalsList(false); } }, 5000);
     }
 
     window.actionDiscount = async function(docId, action) {
       try { 
           const { error } = await supabase.from('discount_requests').update({ status: action }).eq('id', docId); 
-          if(error) throw error;
-          displayToast(`Request Marked as ${action}`);
-          fetchApprovalsList(false);
+          if(error) throw error; displayToast(`Request Marked as ${action}`); fetchApprovalsList(false);
       } catch (err) { alert("Failed to update status."); }
     };
 
@@ -1120,9 +1271,7 @@
             if (!isNaN(lastNum)) startCount = lastNum;
         }
 
-        let currentCount = startCount;
-        const piecesToInsert = [];
-
+        let currentCount = startCount; const piecesToInsert = [];
         for (let i = 0; i < qty; i++) {
           currentCount++; const uniquePieceID = `${targetItem.sku}-${currentCount}`;
           const wrapperDiv = document.createElement('div'); wrapperDiv.className = 'qr-wrapper';
@@ -1146,7 +1295,6 @@
     });
 
     document.getElementById('btn-download-pdf').addEventListener('click', () => { window.print(); document.getElementById('qr-qty').value = ''; });
-
 
     // --- REPORTS UI & LOGIC ---
     document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -1191,67 +1339,6 @@
 
     function downloadFile(blob, filename) { const link = document.createElement("a"); link.download = filename; link.href = window.URL.createObjectURL(blob); link.style.display = "none"; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
-    function initReportsUI() {
-      const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30); thirtyDaysAgo.setHours(0,0,0,0);
-      const today = new Date(); today.setHours(23,59,59,999);
-      fpStart = flatpickr("#report-start", { defaultDate: thirtyDaysAgo, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y", onChange: () => fetchBillsFromDatabase(false) });
-      fpEnd = flatpickr("#report-end", { defaultDate: today, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y", onChange: () => fetchBillsFromDatabase(false) });
-      fpAuditDate = flatpickr("#audit-date", { defaultDate: today, dateFormat: "Y-m-d", altInput: true, altFormat: "d M, Y" });
-
-      document.getElementById('report-branch').addEventListener('change', () => { fetchBillsFromDatabase(false); processReportData(); });
-      document.getElementById('report-staff').addEventListener('change', () => fetchBillsFromDatabase(false));
-
-      document.getElementById('btn-reset-filters').addEventListener('click', () => {
-        fpStart.setDate(thirtyDaysAgo, false); fpEnd.setDate(today, false);
-        document.getElementById('report-branch').value = "All"; document.getElementById('report-staff').value = "All";
-        document.getElementById('item-search-input').value = ""; document.querySelectorAll('.check-wrap').forEach(lbl => lbl.style.display = 'flex');
-        if (masterItemList.length > 0) { selectedItems = new Set(masterItemList); document.querySelectorAll('.item-cb').forEach(cb => cb.checked = true); updateItemBtnText(); }
-        fetchBillsFromDatabase(false);
-      });
-
-      document.getElementById('item-filter-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('item-dropdown-box').classList.toggle('show'); });
-      document.getElementById('item-dropdown-box').addEventListener('click', (e) => { e.stopPropagation(); }); 
-      document.getElementById('item-search-input').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        document.querySelectorAll('.check-wrap').forEach(lbl => { lbl.style.display = lbl.innerText.toLowerCase().includes(term) ? 'flex' : 'none'; });
-      });
-      window.addEventListener('click', (e) => { if(!e.target.closest('#item-filter-dropdown')) { const itemBox = document.getElementById('item-dropdown-box'); if(itemBox) itemBox.classList.remove('show'); } });
-      document.getElementById('btn-load-more').addEventListener('click', () => { fetchBillsFromDatabase(true); });
-    }
-
-    function renderItemFilter() {
-      const container = document.getElementById('item-checkboxes');
-      container.innerHTML = masterItemList.map(name => { const isChecked = selectedItems.has(name) ? "checked" : ""; return `<label class="check-wrap"><input type="checkbox" class="item-cb" value="${name}" ${isChecked}> <span>${name}</span></label>`; }).join('');
-      document.querySelectorAll('.item-cb').forEach(cb => { cb.addEventListener('change', (e) => { if(e.target.checked) selectedItems.add(e.target.value); else selectedItems.delete(e.target.value); updateItemBtnText(); processReportData(); }); });
-      document.getElementById('btn-select-all-items').addEventListener('click', () => { document.querySelectorAll('.item-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = true; selectedItems.add(cb.value); }}); updateItemBtnText(); processReportData(); });
-      document.getElementById('btn-deselect-all-items').addEventListener('click', () => { document.querySelectorAll('.item-cb').forEach(cb => { if(cb.closest('.check-wrap').style.display !== 'none') { cb.checked = false; selectedItems.delete(cb.value); }}); updateItemBtnText(); processReportData(); });
-    }
-
-    function updateItemBtnText() {
-      const btn = document.getElementById('item-btn-text');
-      if(selectedItems.size === masterItemList.length && masterItemList.length > 0) btn.innerText = "All Items Selected"; else if(selectedItems.size === 0) btn.innerText = "No Items Selected"; else btn.innerText = `${selectedItems.size} Selected`;
-    }
-
-    // --- CACHE & PERSISTENCE ---
-    function loadFromLocalCache() {
-        try {
-            const cached = localStorage.getItem(CACHE_KEY);
-            if(cached) {
-                const parsed = JSON.parse(cached);
-                allBills = parsed.bills || []; allInventory = parsed.inventory || [];
-                masterItemList = parsed.items || [];
-                if (masterItemList.length > 0) { selectedItems = new Set(masterItemList); renderItemFilter(); updateItemBtnText(); }
-                return (allBills.length > 0 || allInventory.length > 0);
-            }
-        } catch (e) { }
-        return false;
-    }
-
-    function saveToLocalCache() {
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ bills: allBills, inventory: allInventory, items: masterItemList }));
-        } catch (e) { }
-    }
-
     // --- DATA PROCESSING & DASHBOARD RENDER ---
     function processReportData() {
       if (selectedItems.size === 0) {
@@ -1263,13 +1350,11 @@
 
       let filteredRevenue = 0; let filteredPiecesSold = 0; let filteredTotalProfit = 0;
       let filteredStockCount = 0; let filteredStockRetailValue = 0; let tableRowsHtml = '';
-      const selectedBranch = document.getElementById('report-branch').value; const selectedStaff = document.getElementById('report-staff').value;
       itemAgg = {}; staffAgg = {}; branchAgg = {}; stockAgg = {}; filteredTransactions = []; 
 
       allInventory.forEach(item => {
-        // We match by product_name since the old structure used names in the itemsList
         if (!selectedItems.has(item.product_name)) return;
-        if (selectedBranch !== "All" && item.branch !== selectedBranch) return; 
+        if (selectedBranches.size > 0 && !selectedBranches.has(item.branch || "Central / Unassigned Branch")) return; 
         
         filteredStockCount++; filteredStockRetailValue += (item.price || 0);
         if (currentReportView === "stock") {
@@ -1284,11 +1369,13 @@
         let containsFilteredItem = false; let itemsList = ""; let billCost = 0;
         const branchName = bill.branch || "Unknown Branch"; const staffName = bill.staff_name || "Unknown Cashier";
         
+        // Safety against data mismatch, since API pulls everything when custom filters are off
+        if (selectedBranches.size > 0 && !selectedBranches.has(branchName)) return;
+        if (selectedStaff.size > 0 && !selectedStaff.has(staffName)) return;
+
         if (bill.items) {
            Object.values(bill.items).forEach(item => {
-             // Extract plain name if badge is present
              const cleanName = item.name.replace(/<[^>]*>?/gm, ''); 
-             
              if (selectedItems.has(cleanName) || selectedItems.has(item.name)) {
                 containsFilteredItem = true; itemsList += `${cleanName} (x${item.quantity}), `;
                 let unitCost = item.costPrice || productCostMap[cleanName] || 0; let itemTotalCost = unitCost * item.quantity;
