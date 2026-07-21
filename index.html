@@ -673,7 +673,6 @@
             initReportsUI();
             initApprovalsListener();
             setupLiveSyncToggle();
-            startAutomatedDailyAudit(); 
             
             loadSettingsFromCache();
             if (allBills.length === 0 && allInventory.length === 0) performFullDataSync();
@@ -1238,20 +1237,6 @@
         if (missingCount === 0) { document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--success); font-weight: 700;">🎉 100% Match! No missing items found for the selected branches.</td></tr>`;
         } else { document.getElementById('audit-tbody').innerHTML = missingRowsHtml; }
     });
-
-    // Run audit report daily at 00:00 (Client-side automatic trigger if tab is open)
-    function startAutomatedDailyAudit() {
-        setInterval(() => {
-            const now = new Date();
-            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
-                if(document.getElementById('btn-run-audit')) {
-                    // Ensures date is set to "today" dynamically before running
-                    fpAuditDate.setDate(new Date()); 
-                    document.getElementById('btn-run-audit').click();
-                }
-            }
-        }, 1000); // Check time every second
-    }
 
     // --- DISCOUNT APPROVALS ENGINE ---
     let approvalsPoller = null;
