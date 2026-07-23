@@ -277,12 +277,53 @@
         height: 28mm !important; 
         object-fit: contain; 
     }
+
+    /* Accounting Module */
+    .voucher-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .voucher-payment { background: var(--danger-alpha); color: var(--danger); }
+    .voucher-receipt { background: var(--success-alpha); color: var(--success); }
+    .voucher-contra { background: var(--warning-alpha); color: var(--warning); }
+    .bs-balanced { color: var(--success); font-weight: 700; }
+    .bs-unbalanced { color: var(--danger); font-weight: 700; }
+    .keyboard-hint { font-size: 11px; color: var(--text-soft); margin-top: 8px; }
+    .keyboard-hint kbd { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 4px; padding: 2px 6px; font-family: monospace; font-size: 10px; }
   </style>
 </head>
 <body>
 
   <div id="global-loader"><div class="spinner"></div></div>
   <div id="toast"><div id="toast-icon"></div><div id="toast-msg"></div></div>
+
+  <!-- Account Settlement Modal -->
+  <div id="settle-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+      <span class="close-modal" onclick="document.getElementById('settle-modal').style.display='none'">&times;</span>
+      <h2 style="margin-bottom: 8px; font-size: 20px;">Settle Account</h2>
+      <p id="settle-party-info" style="color: var(--text-soft); font-size: 13px; margin-bottom: 24px;"></p>
+      <input type="hidden" id="settle-party-id">
+      <div class="form-grid" style="grid-template-columns: 1fr;">
+        <div class="filter-group">
+          <label>Settlement Amount (₹)</label>
+          <input type="number" id="settle-amount" class="input-field" placeholder="Enter amount" min="0.01" step="0.01">
+        </div>
+        <div class="filter-group">
+          <label>Payment Mode</label>
+          <select id="settle-mode" class="input-field">
+            <option value="Cash">Cash (Cash Drawer)</option>
+            <option value="UPI">Bank / UPI</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Remarks (Optional)</label>
+          <input type="text" id="settle-remarks" class="input-field" placeholder="Settlement reference or notes">
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button id="btn-confirm-settle" class="btn-primary" style="flex: 1;">Confirm Settlement</button>
+        <button class="btn-secondary" onclick="document.getElementById('settle-modal').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Bill Details Modal -->
   <div id="bill-modal" class="modal-overlay">
@@ -372,6 +413,19 @@
           <button class="tab-btn" data-view="view-settings">
             <span class="tab-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span> 
             Settings & Master
+          </button>
+          
+          <!-- NEW ACCOUNTING BUTTONS -->
+          <hr style="border-color: var(--card-border); margin: 8px 0;">
+          <div style="padding: 0 16px; font-size: 11px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; margin-bottom: 8px;">Accounting</div>
+          <button class="tab-btn" data-view="view-cashbook">
+            <span class="tab-icon">💰</span> Vouchers
+          </button>
+          <button class="tab-btn" data-view="view-khata">
+            <span class="tab-icon">📒</span> Party Ledger
+          </button>
+          <button class="tab-btn" data-view="view-balancesheet">
+            <span class="tab-icon">📊</span> Balance Sheet
           </button>
         </div>
       </aside>
@@ -881,6 +935,201 @@
           </div>
         </div>
 
+        <!-- VIEW 9: TALLY VOUCHER ENTRY (F4, F5, F6) -->
+        <div id="view-cashbook" class="app-view" style="display: none;">
+          <h2 class="section-title">💰 Accounting Vouchers (Payment, Receipt, Contra)</h2>
+          
+          <div class="widget-grid">
+            <div class="widget-card">
+              <div class="widget-header"><span class="widget-title">Cash in Hand (Cash Drawer)</span></div>
+              <div class="metric-value" id="cash-in-hand" style="color: var(--success);">₹0.00</div>
+            </div>
+            <div class="widget-card">
+              <div class="widget-header"><span class="widget-title">Bank / UPI Balance</span></div>
+              <div class="metric-value" id="bank-balance" style="color: var(--primary);">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="widget-card">
+            <h3 style="margin-bottom: 16px; color: var(--text-main);">Create New Voucher</h3>
+            <div class="form-grid" style="align-items: end;">
+              
+              <div class="filter-group">
+                <label style="color: var(--warning);">Voucher Type</label>
+                <select id="voucher-type" class="input-field" onchange="window.updateVoucherCategories()" style="border-color: var(--warning);">
+                  <option value="Payment">Payment (F5) — Money Out</option>
+                  <option value="Receipt">Receipt (F6) — Money In</option>
+                  <option value="Contra">Contra (F4) — Cash ↔ Bank Transfer</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Ledger Account / Category</label>
+                <select id="cash-category" class="input-field">
+                  <!-- Dynamically populated by JS -->
+                </select>
+              </div>
+              
+              <div class="filter-group" id="payment-mode-group">
+                <label>Payment Mode</label>
+                <select id="cash-mode" class="input-field">
+                  <option value="Cash">Cash (Cash Drawer)</option>
+                  <option value="UPI">Bank / UPI</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="cash-amount" class="input-field" placeholder="0.00" min="0.01" step="0.01">
+              </div>
+
+              <div class="filter-group" style="grid-column: span 2;">
+                <label>Narration / Remarks</label>
+                <input type="text" id="cash-remarks" class="input-field" placeholder="Enter transaction details (e.g., Owner withdrawal, FD investment, rent payment)">
+              </div>
+            </div>
+            <p class="keyboard-hint">Shortcuts: <kbd>F4</kbd> Contra &nbsp; <kbd>F5</kbd> Payment &nbsp; <kbd>F6</kbd> Receipt</p>
+            <button id="btn-save-transaction" class="btn-primary" style="margin-top: 24px; min-width: 200px;">Save Voucher</button>
+          </div>
+
+          <div class="table-card" style="margin-top: 24px;">
+            <div class="sub-tab-controls" style="border-bottom: none;">
+              <h3 style="font-size: 15px; font-weight: 700;">Voucher Register</h3>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Ledger Category</th>
+                    <th>Mode</th>
+                    <th>Amount</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="voucher-tbody">
+                  <tr><td colspan="6" style="text-align:center; color: var(--text-soft);">Loading vouchers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 10: PARTY LEDGER (Accounts Receivable & Payable) -->
+        <div id="view-khata" class="app-view" style="display: none;">
+          <h2 class="section-title">📒 Party Ledger (Accounts Receivable & Payable)</h2>
+          
+          <div class="widget-card" style="margin-bottom: 24px;">
+            <h3 style="margin-bottom: 16px;">Add New Party (Customer / Supplier)</h3>
+            <div class="form-grid">
+              <div class="filter-group"><label>Party Name</label><input type="text" id="party-name" class="input-field" placeholder="Enter party name"></div>
+              <div class="filter-group"><label>Contact</label><input type="text" id="party-contact" class="input-field" placeholder="Phone or email"></div>
+              <div class="filter-group">
+                <label>Opening Balance (₹)</label>
+                <input type="number" id="party-balance" class="input-field" placeholder="+ To Receive (Debtor), − To Pay (Creditor)" step="0.01">
+                <span style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">Positive = Sundry Debtor &nbsp;|&nbsp; Negative = Sundry Creditor</span>
+              </div>
+            </div>
+            <button id="btn-save-party" class="btn-primary" style="margin-top: 16px;">Save Party</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table>
+                <thead><tr><th>Party Name</th><th>Contact</th><th>Net Balance</th><th>Account Type</th><th>Action</th></tr></thead>
+                <tbody id="khata-tbody">
+                    <tr><td colspan="5" style="text-align:center;">Loading party ledger...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 11: TALLY STYLE BALANCE SHEET & P&L -->
+        <div id="view-balancesheet" class="app-view" style="display: none;">
+          <h2 class="section-title">📊 Balance Sheet & Profit & Loss (Tally Format)</h2>
+          
+          <div id="bs-balance-status" style="text-align: center; padding: 12px; margin-bottom: 24px; border-radius: var(--radius-md); background: var(--card-bg); border: 1px solid var(--card-border); font-weight: 600; font-size: 13px;">
+            Calculating balance sheet...
+          </div>
+
+          <div class="widget-grid" style="grid-template-columns: 1fr 1fr;">
+            
+            <!-- LIABILITIES & CAPITAL (Left Side) -->
+            <div class="widget-card" style="border-top: 3px solid var(--danger);">
+              <h3 style="margin-bottom: 16px; color: var(--danger); font-size: 15px;">Liabilities & Capital</h3>
+              <div class="bill-detail-grid" style="grid-template-columns: 1fr;">
+                 
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Capital Account (Owner's Funds)</span>
+                    <span class="bill-detail-val" id="bs-capital">₹0.00</span>
+                    <span style="font-size: 11px; color: var(--text-soft);">Less: Drawings — <b id="bs-drawings" style="color:var(--danger);">₹0.00</b></span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Sundry Creditors (Accounts Payable — To Pay)</span>
+                    <span class="bill-detail-val" id="bs-creditors">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Loans Payable (Borrowings)</span>
+                    <span class="bill-detail-val" id="bs-loans-payable">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Net Profit (Profit & Loss Account)</span>
+                    <span class="bill-detail-val" id="bs-net-profit" style="color: var(--success);">₹0.00</span>
+                    <span style="font-size: 11px; color: var(--text-soft);">Sales − Purchases − Expenses</span>
+                 </div>
+                 
+                 <div class="bill-detail-item" style="margin-top: 12px;">
+                    <span class="bill-detail-label" style="font-size: 13px;">Total Liabilities & Capital</span>
+                    <span class="bill-detail-val" id="bs-total-liabilities" style="font-size: 18px; font-weight: 800;">₹0.00</span>
+                 </div>
+              </div>
+            </div>
+
+            <!-- ASSETS (Right Side) -->
+            <div class="widget-card" style="border-top: 3px solid var(--success);">
+              <h3 style="margin-bottom: 16px; color: var(--success); font-size: 15px;">Assets</h3>
+              <div class="bill-detail-grid" style="grid-template-columns: 1fr;">
+                 
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Fixed Assets & Investments</span>
+                    <span class="bill-detail-val" id="bs-investments" style="color: var(--primary);">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Closing Stock Value</span>
+                    <span class="bill-detail-val" id="bs-stock">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Sundry Debtors (Accounts Receivable — To Receive)</span>
+                    <span class="bill-detail-val" id="bs-debtors">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Loans & Advances Given</span>
+                    <span class="bill-detail-val" id="bs-loans-given">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="border-bottom: 1px dashed var(--card-border); padding-bottom: 8px;">
+                    <span class="bill-detail-label">Liquid Assets (Cash Drawer + Bank Balance)</span>
+                    <span class="bill-detail-val" id="bs-liquid">₹0.00</span>
+                 </div>
+
+                 <div class="bill-detail-item" style="margin-top: 12px;">
+                    <span class="bill-detail-label" style="font-size: 13px;">Total Assets</span>
+                    <span class="bill-detail-val" id="bs-total-assets" style="font-size: 18px; font-weight: 800;">₹0.00</span>
+                 </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -914,6 +1163,10 @@
     let itemsMaster = []; let branchesMaster = []; let staffMaster = []; let offersMaster = [];
     let fpOfferStart, fpOfferEnd;
     let isAppInitialized = false;
+
+    // Accounting Module Data
+    let cashbookData = [];
+    let khataData = [];
 
     // Helper function to prevent UI breaking from < > symbols
     function sanitizeText(str) {
@@ -964,10 +1217,11 @@
                 await Promise.all([loadItems(), loadBranches(), loadStaff()]);
                 await loadOffers();
                 
-                initDropdownInteractions(); // Ab ye strictly ek baar hi run hoga
+                initDropdownInteractions(); // Run once on initialization
                 initReportsUI();
                 initApprovalsListener();
                 setupLiveSyncToggle();
+                window.updateVoucherCategories(); // Initialize Tally Dropdowns
                 
                 loadSettingsFromCache();
                 
@@ -1029,7 +1283,7 @@
     document.getElementById('btn-save-item').addEventListener('click', async (e) => {
         const btn = e.target;
         const originalText = btn.innerText;
-        btn.disabled = true; // Spam click roko
+        btn.disabled = true; // Prevent duplicate submissions
         btn.innerText = "Saving...";
 
         const id = document.getElementById('edit-item-id').value;
@@ -1099,7 +1353,7 @@
     document.getElementById('btn-save-branch').addEventListener('click', async (e) => {
         const btn = e.target;
         const originalText = btn.innerText;
-        btn.disabled = true; // Spam click roko
+        btn.disabled = true; // Prevent duplicate submissions
         btn.innerText = "Saving...";
 
         const id = document.getElementById('edit-branch-id').value;
@@ -1939,6 +2193,11 @@
         if (targetView === 'view-reports' && (allBills.length > 0 || allInventory.length > 0)) processReportData();
         if (targetView === 'view-audit' && allInventory.length === 0) performFullDataSync(); 
         if (targetView === 'view-defectives') fetchDefectives();
+        
+        // NEW TALLY HOOKS
+        if (targetView === 'view-cashbook') { loadCashbook(); window.updateVoucherCategories(); }
+        if (targetView === 'view-khata') loadKhata();
+        if (targetView === 'view-balancesheet') { loadCashbook(); loadKhata(); setTimeout(generateBalanceSheet, 200); }
       });
     });
 
@@ -2187,6 +2446,347 @@
       document.getElementById('metric-revenue').innerText = `₹${filteredRevenue.toFixed(2)}`;
       const profitWidget = document.getElementById('metric-profit'); profitWidget.innerText = `₹${filteredTotalProfit.toFixed(2)}`; profitWidget.style.color = filteredTotalProfit >= 0 ? 'var(--success)' : 'var(--danger)';
       document.getElementById('metric-sold').innerText = filteredPiecesSold; tbody.innerHTML = tableRowsHtml;
+    }
+
+    // ==========================================
+    // --- ADVANCED TALLY / ACCOUNTING LOGIC ---
+    // ==========================================
+
+    function formatCurrency(amount) {
+        return `₹${parseFloat(amount || 0).toFixed(2)}`;
+    }
+
+    function calculateCashBankBalances(transactions) {
+        let totalCash = 0;
+        let totalBank = 0;
+
+        let totalSalesCash = 0;
+        allBills.forEach(b => { if (b.status !== 'Refunded') totalSalesCash += parseFloat(b.total_paid || 0); });
+        totalCash += (totalSalesCash * 0.3);
+        totalBank += (totalSalesCash * 0.7);
+
+        (transactions || []).forEach(txn => {
+            const amt = parseFloat(txn.amount);
+            if (txn.type === 'Payment') {
+                if (txn.payment_mode === 'Cash') totalCash -= amt;
+                else totalBank -= amt;
+            } else if (txn.type === 'Receipt') {
+                if (txn.payment_mode === 'Cash') totalCash += amt;
+                else totalBank += amt;
+            } else if (txn.type === 'Contra') {
+                if (txn.category === 'Cash Deposit') { totalCash -= amt; totalBank += amt; }
+                else if (txn.category === 'Cash Withdrawal') { totalBank -= amt; totalCash += amt; }
+            }
+        });
+
+        return { totalCash, totalBank };
+    }
+
+    function renderVoucherRegister(data) {
+        const tbody = document.getElementById('voucher-tbody');
+        if (!tbody) return;
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-soft); padding: 40px;">No vouchers recorded yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.map(txn => {
+            const typeClass = txn.type === 'Payment' ? 'voucher-payment' : txn.type === 'Receipt' ? 'voucher-receipt' : 'voucher-contra';
+            const dateStr = new Date(txn.date).toLocaleString();
+            const mode = txn.type === 'Contra' ? 'Transfer' : (txn.payment_mode === 'Cash' ? 'Cash' : 'Bank / UPI');
+            return `<tr>
+                <td>${dateStr}</td>
+                <td><span class="voucher-badge ${typeClass}">${txn.type}</span></td>
+                <td>${sanitizeText(txn.category) || '—'}</td>
+                <td>${mode}</td>
+                <td style="font-weight: 700;">${formatCurrency(txn.amount)}</td>
+                <td style="color: var(--text-soft);">${sanitizeText(txn.remarks) || '—'}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Dynamic Voucher Categories (Tally Ledgers)
+    window.updateVoucherCategories = function() {
+        const type = document.getElementById('voucher-type').value;
+        const catSelect = document.getElementById('cash-category');
+        const modeGroup = document.getElementById('payment-mode-group');
+
+        if (type === 'Payment') {
+            catSelect.innerHTML = `
+                <option value="Drawings">Drawings (Owner Withdrawal)</option>
+                <option value="Investment">Investments (FD / Stocks / Fixed Assets)</option>
+                <option value="Cash Purchase">Cash Purchases (Direct Stock Purchase)</option>
+                <option value="Loan Given">Loans & Advances Given</option>
+                <option value="Supplier Payment">Sundry Creditors (Supplier Payment)</option>
+                <option value="Expense">Indirect Expenses (Rent, Salary, Utilities)</option>
+            `;
+            if (modeGroup) modeGroup.style.display = '';
+        } else if (type === 'Receipt') {
+            catSelect.innerHTML = `
+                <option value="Capital Invested">Capital Introduced (Owner Investment)</option>
+                <option value="Cash Sales">Direct Cash Sales / Income</option>
+                <option value="Loan Received">Loan Received</option>
+                <option value="Customer Receipt">Sundry Debtors (Accounts Receivable Recovery)</option>
+                <option value="Income">Indirect Income (Interest / Discount Received)</option>
+            `;
+            if (modeGroup) modeGroup.style.display = '';
+        } else if (type === 'Contra') {
+            catSelect.innerHTML = `
+                <option value="Cash Deposit">Cash Deposit into Bank</option>
+                <option value="Cash Withdrawal">Cash Withdrawal from Bank</option>
+            `;
+            if (modeGroup) modeGroup.style.display = 'none';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => { window.updateVoucherCategories(); });
+
+    // Keyboard shortcuts: F4 Contra, F5 Payment, F6 Receipt
+    document.addEventListener('keydown', (e) => {
+        const cashbookView = document.getElementById('view-cashbook');
+        if (!cashbookView || cashbookView.style.display === 'none') return;
+        const voucherType = document.getElementById('voucher-type');
+        if (!voucherType) return;
+        if (e.key === 'F4') { e.preventDefault(); voucherType.value = 'Contra'; window.updateVoucherCategories(); }
+        else if (e.key === 'F5') { e.preventDefault(); voucherType.value = 'Payment'; window.updateVoucherCategories(); }
+        else if (e.key === 'F6') { e.preventDefault(); voucherType.value = 'Receipt'; window.updateVoucherCategories(); }
+    });
+
+    // 1. Fetch & Calculate Cashbook (Dual Ledger)
+    async function loadCashbook() {
+        const { data, error } = await supabase.from('cashbook_transactions').select('*').order('date', { ascending: false });
+        if (error) {
+            displayToast(error.message, 'error');
+            return;
+        }
+        cashbookData = data || [];
+        const { totalCash, totalBank } = calculateCashBankBalances(cashbookData);
+
+        document.getElementById('cash-in-hand').innerText = formatCurrency(totalCash);
+        document.getElementById('bank-balance').innerText = formatCurrency(totalBank);
+        renderVoucherRegister(cashbookData);
+    }
+
+    // 2. Save Voucher
+    document.getElementById('btn-save-transaction')?.addEventListener('click', async () => {
+        const type = document.getElementById('voucher-type').value;
+        const category = document.getElementById('cash-category').value;
+        const amount = parseFloat(document.getElementById('cash-amount').value);
+        const mode = document.getElementById('cash-mode').value;
+        const remarks = document.getElementById('cash-remarks').value.trim();
+
+        if (!amount || amount <= 0) return displayToast('Enter a valid amount', 'error');
+
+        const payload = {
+            type,
+            category,
+            amount,
+            payment_mode: type === 'Contra' ? 'Transfer' : mode,
+            remarks,
+            date: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('cashbook_transactions').insert([payload]);
+        if (error) displayToast(error.message, 'error');
+        else {
+            displayToast('Voucher saved successfully');
+            document.getElementById('cash-amount').value = '';
+            document.getElementById('cash-remarks').value = '';
+            await loadCashbook();
+        }
+    });
+
+    // 3. Save Party to Ledger
+    document.getElementById('btn-save-party')?.addEventListener('click', async () => {
+        const name = document.getElementById('party-name').value.trim();
+        const contact = document.getElementById('party-contact').value.trim();
+        const balance = parseFloat(document.getElementById('party-balance').value) || 0;
+
+        if (!name) return displayToast('Party name is required', 'error');
+
+        const { error } = await supabase.from('khata_ledger').insert([{
+            party_name: name,
+            contact,
+            balance
+        }]);
+
+        if (error) displayToast(error.message, 'error');
+        else {
+            displayToast('Party saved successfully');
+            document.getElementById('party-name').value = '';
+            document.getElementById('party-contact').value = '';
+            document.getElementById('party-balance').value = '';
+            await loadKhata();
+        }
+    });
+
+    // 4. Load Party Ledger (Debtors & Creditors)
+    async function loadKhata() {
+        const { data, error } = await supabase.from('khata_ledger').select('*').order('party_name');
+        if (error) {
+            displayToast(error.message, 'error');
+            return;
+        }
+        khataData = data || [];
+        let debtorsTotal = 0;
+        let creditorsTotal = 0;
+
+        const tbody = document.getElementById('khata-tbody');
+        if (!khataData.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-soft); padding: 40px;">No parties added yet. Add a customer or supplier above.</td></tr>';
+        } else {
+            tbody.innerHTML = khataData.map(p => {
+                const bal = parseFloat(p.balance || 0);
+                if (bal > 0) debtorsTotal += bal;
+                else if (bal < 0) creditorsTotal += Math.abs(bal);
+
+                const balColor = bal > 0 ? 'color: var(--success);' : bal < 0 ? 'color: var(--danger);' : '';
+                const balText = formatCurrency(Math.abs(bal));
+                const accountType = bal > 0
+                    ? '<span class="badge bg-green">Sundry Debtor — To Receive</span>'
+                    : bal < 0
+                        ? '<span class="badge bg-red">Sundry Creditor — To Pay</span>'
+                        : '<span class="badge bg-gray">Settled</span>';
+                const settleDisabled = bal === 0 ? 'disabled style="opacity:0.5;"' : '';
+
+                return `<tr>
+                    <td><strong>${sanitizeText(p.party_name)}</strong></td>
+                    <td>${sanitizeText(p.contact) || '—'}</td>
+                    <td style="font-weight: 700; ${balColor}">${balText}</td>
+                    <td>${accountType}</td>
+                    <td><button class="btn-success-outline" ${settleDisabled} onclick="window.openSettleModal('${p.id}')">Settle Account</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        const bsDebtors = document.getElementById('bs-debtors');
+        const bsCreditors = document.getElementById('bs-creditors');
+        if (bsDebtors) bsDebtors.innerText = formatCurrency(debtorsTotal);
+        if (bsCreditors) bsCreditors.innerText = formatCurrency(creditorsTotal);
+    }
+
+    // 5. Account Settlement — opens modal
+    window.openSettleModal = function(partyId) {
+        const party = khataData.find(p => p.id === partyId);
+        if (!party) return displayToast('Party not found', 'error');
+
+        const bal = parseFloat(party.balance || 0);
+        if (bal === 0) return displayToast('This account is already settled', 'error');
+
+        document.getElementById('settle-party-id').value = partyId;
+        const action = bal > 0 ? 'Receive payment from' : 'Pay';
+        const typeLabel = bal > 0 ? 'Sundry Debtor (To Receive)' : 'Sundry Creditor (To Pay)';
+        document.getElementById('settle-party-info').innerHTML =
+            `<strong>${sanitizeText(party.party_name)}</strong> — ${typeLabel}<br>Outstanding: <strong>${formatCurrency(Math.abs(bal))}</strong><br>Action: ${action} this party`;
+
+        document.getElementById('settle-amount').value = Math.abs(bal).toFixed(2);
+        document.getElementById('settle-amount').max = Math.abs(bal);
+        document.getElementById('settle-remarks').value = `Settlement — ${party.party_name}`;
+        document.getElementById('settle-modal').style.display = 'flex';
+    };
+
+    // 6. Confirm Settlement — creates linked voucher & updates party balance
+    document.getElementById('btn-confirm-settle')?.addEventListener('click', async () => {
+        const partyId = document.getElementById('settle-party-id').value;
+        const amount = parseFloat(document.getElementById('settle-amount').value);
+        const mode = document.getElementById('settle-mode').value;
+        const remarks = document.getElementById('settle-remarks').value.trim();
+
+        const party = khataData.find(p => p.id === partyId);
+        if (!party) return displayToast('Party not found', 'error');
+
+        const currentBal = parseFloat(party.balance || 0);
+        if (!amount || amount <= 0) return displayToast('Enter a valid settlement amount', 'error');
+        if (amount > Math.abs(currentBal)) return displayToast('Amount exceeds outstanding balance', 'error');
+
+        const isDebtor = currentBal > 0;
+        const voucherType = isDebtor ? 'Receipt' : 'Payment';
+        const voucherCategory = isDebtor ? 'Customer Receipt' : 'Supplier Payment';
+        const newBalance = isDebtor ? currentBal - amount : currentBal + amount;
+
+        const voucherPayload = {
+            type: voucherType,
+            category: voucherCategory,
+            amount,
+            payment_mode: mode,
+            remarks: remarks || `Account settlement — ${party.party_name}`,
+            date: new Date().toISOString()
+        };
+
+        const { error: voucherError } = await supabase.from('cashbook_transactions').insert([voucherPayload]);
+        if (voucherError) return displayToast(voucherError.message, 'error');
+
+        const { error: balanceError } = await supabase.from('khata_ledger').update({ balance: newBalance }).eq('id', partyId);
+        if (balanceError) return displayToast(balanceError.message, 'error');
+
+        document.getElementById('settle-modal').style.display = 'none';
+        displayToast(`Account settled. ${voucherType} voucher created for ${formatCurrency(amount)}`);
+        await Promise.all([loadKhata(), loadCashbook()]);
+    });
+
+    // 7. Generate Double-Entry Tally Balance Sheet
+    function generateBalanceSheet() {
+        let drawings = 0, investments = 0, cashPurchases = 0, loansGiven = 0, expenses = 0;
+        let capitalIntroduced = 0, indirectIncome = 0, loanReceived = 0;
+
+        cashbookData.forEach(txn => {
+            const amt = parseFloat(txn.amount);
+            if (txn.category === 'Drawings') drawings += amt;
+            if (txn.category === 'Investment') investments += amt;
+            if (txn.category === 'Cash Purchase') cashPurchases += amt;
+            if (txn.category === 'Loan Given') loansGiven += amt;
+            if (txn.category === 'Expense') expenses += amt;
+            if (txn.category === 'Capital Invested') capitalIntroduced += amt;
+            if (txn.category === 'Income') indirectIncome += amt;
+            if (txn.category === 'Loan Received') loanReceived += amt;
+        });
+
+        let totalSales = 0;
+        allBills.forEach(b => { if (b.status !== 'Refunded') totalSales += parseFloat(b.total_paid || 0); });
+
+        const netProfit = totalSales + indirectIncome - cashPurchases - expenses;
+        const capitalAccount = capitalIntroduced - drawings;
+
+        let currentStockVal = 0;
+        allInventory.forEach(i => { currentStockVal += (i.cost_price || 0); });
+
+        const { totalCash, totalBank } = calculateCashBankBalances(cashbookData);
+        const liquidCash = totalCash + totalBank;
+
+        const debtorsTotal = parseFloat((document.getElementById('bs-debtors')?.innerText || '₹0').replace('₹', '')) || 0;
+        const creditorsTotal = parseFloat((document.getElementById('bs-creditors')?.innerText || '₹0').replace('₹', '')) || 0;
+
+        document.getElementById('bs-capital').innerText = formatCurrency(capitalAccount);
+        document.getElementById('bs-drawings').innerText = formatCurrency(drawings);
+        document.getElementById('bs-net-profit').innerText = formatCurrency(netProfit);
+        document.getElementById('bs-net-profit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('bs-loans-payable').innerText = formatCurrency(loanReceived);
+
+        document.getElementById('bs-investments').innerText = formatCurrency(investments);
+        document.getElementById('bs-loans-given').innerText = formatCurrency(loansGiven);
+        document.getElementById('bs-stock').innerText = formatCurrency(currentStockVal);
+        document.getElementById('bs-liquid').innerText = formatCurrency(liquidCash);
+
+        const totalLiabilities = capitalAccount + creditorsTotal + netProfit + loanReceived;
+        const totalAssets = investments + currentStockVal + debtorsTotal + loansGiven + liquidCash;
+
+        document.getElementById('bs-total-liabilities').innerText = formatCurrency(totalLiabilities);
+        document.getElementById('bs-total-assets').innerText = formatCurrency(totalAssets);
+
+        const diff = Math.abs(totalAssets - totalLiabilities);
+        const statusEl = document.getElementById('bs-balance-status');
+        if (statusEl) {
+            if (diff < 0.02) {
+                statusEl.className = 'bs-balanced';
+                statusEl.style.background = 'var(--success-alpha)';
+                statusEl.style.borderColor = 'var(--success)';
+                statusEl.innerText = `✓ Balance Sheet Balanced — Total Assets ${formatCurrency(totalAssets)} = Total Liabilities & Capital ${formatCurrency(totalLiabilities)}`;
+            } else {
+                statusEl.className = 'bs-unbalanced';
+                statusEl.style.background = 'var(--warning-alpha)';
+                statusEl.style.borderColor = 'var(--warning)';
+                statusEl.innerText = `⚠ Difference of ${formatCurrency(diff)} — Assets: ${formatCurrency(totalAssets)} | Liabilities & Capital: ${formatCurrency(totalLiabilities)}`;
+            }
+        }
     }
   </script>
 </body>
