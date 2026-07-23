@@ -912,6 +912,7 @@
     // Master DB Data
     let itemsMaster = []; let branchesMaster = []; let staffMaster = []; let offersMaster = [];
     let fpOfferStart, fpOfferEnd;
+    let isAppInitialized = false;
 
     function displayToast(msg, statusType = "success") {
         const el = document.getElementById('toast');
@@ -936,32 +937,40 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             
-            fpOfferStart = flatpickr("#offer-start", { enableTime: true, dateFormat: "Y-m-d H:i" });
-            fpOfferEnd = flatpickr("#offer-end", { enableTime: true, dateFormat: "Y-m-d H:i" });
-            
-            document.getElementById('offer-type').addEventListener('change', (e) => {
-                if (e.target.value === 'discount') { 
-                    document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'none'; 
-                } else if (e.target.value === 'bogo') { 
-                    document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; 
-                } else if (e.target.value === 'combo') {
-                    document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'block'; 
-                }
-            });
+            // PREVENT MULTIPLE INITIALIZATIONS
+            if (!isAppInitialized) {
+                fpOfferStart = flatpickr("#offer-start", { enableTime: true, dateFormat: "Y-m-d H:i" });
+                fpOfferEnd = flatpickr("#offer-end", { enableTime: true, dateFormat: "Y-m-d H:i" });
+                
+                document.getElementById('offer-type').addEventListener('change', (e) => {
+                    if (e.target.value === 'discount') { 
+                        document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'none'; 
+                    } else if (e.target.value === 'bogo') { 
+                        document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; 
+                    } else if (e.target.value === 'combo') {
+                        document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'block'; 
+                    }
+                });
 
-            await Promise.all([loadItems(), loadBranches(), loadStaff()]);
-            await loadOffers(); // Depends on items load
-            initDropdownInteractions();
-            initReportsUI();
-            initApprovalsListener();
-            setupLiveSyncToggle();
-            
-            loadSettingsFromCache();
+                await Promise.all([loadItems(), loadBranches(), loadStaff()]);
+                await loadOffers();
+                
+                initDropdownInteractions(); // Ab ye strictly ek baar hi run hoga
+                initReportsUI();
+                initApprovalsListener();
+                setupLiveSyncToggle();
+                
+                loadSettingsFromCache();
+                
+                isAppInitialized = true; // Mark app as successfully initialized
+            }
+
             if (allBills.length === 0 && allInventory.length === 0) performFullDataSync();
             else { processReportData(); if(document.getElementById('live-sync-toggle').checked) performFullDataSync(); }
         } else {
             document.getElementById('login-screen').style.display = 'flex';
             document.getElementById('dashboard').style.display = 'none';
+            isAppInitialized = false; // Reset the flag when user logs out
         }
     }
     checkUser();
