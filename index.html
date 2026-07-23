@@ -915,6 +915,12 @@
     let fpOfferStart, fpOfferEnd;
     let isAppInitialized = false;
 
+    // Helper function to prevent UI breaking from < > symbols
+    function sanitizeText(str) {
+        if (!str || typeof str !== 'string') return str;
+        return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
+    }
+
     function displayToast(msg, statusType = "success") {
         const el = document.getElementById('toast');
         const icon = document.getElementById('toast-icon');
@@ -1020,17 +1026,32 @@
         }
     }
 
-    document.getElementById('btn-save-item').addEventListener('click', async () => {
+    document.getElementById('btn-save-item').addEventListener('click', async (e) => {
+        const btn = e.target;
+        const originalText = btn.innerText;
+        btn.disabled = true; // Spam click roko
+        btn.innerText = "Saving...";
+
         const id = document.getElementById('edit-item-id').value;
         const payload = { 
-            name: document.getElementById('item-name').value, sku: document.getElementById('item-sku').value,
-            cost_price: parseFloat(document.getElementById('item-cost').value), selling_price: parseFloat(document.getElementById('item-price').value),
+            name: sanitizeText(document.getElementById('item-name').value), 
+            sku: sanitizeText(document.getElementById('item-sku').value),
+            cost_price: parseFloat(document.getElementById('item-cost').value), 
+            selling_price: parseFloat(document.getElementById('item-price').value),
             low_stock_limit: parseInt(document.getElementById('item-low-stock').value) || 0
         };
-        if (!payload.name || !payload.sku || isNaN(payload.cost_price) || isNaN(payload.selling_price)) return displayToast("Fill all item fields correctly", "error");
         
-        let res; if (id) res = await supabase.from('items_directory').update(payload).eq('id', id); else res = await supabase.from('items_directory').insert(payload);
+        if (!payload.name || !payload.sku || isNaN(payload.cost_price) || isNaN(payload.selling_price)) {
+            btn.disabled = false; btn.innerText = originalText;
+            return displayToast("Fill all item fields correctly", "error");
+        }
         
+        let res; 
+        if (id) res = await supabase.from('items_directory').update(payload).eq('id', id); 
+        else res = await supabase.from('items_directory').insert(payload);
+        
+        btn.disabled = false; btn.innerText = originalText;
+
         if (res.error) displayToast(res.error.message, "error");
         else { displayToast("Item saved!"); document.getElementById('btn-cancel-item').click(); loadItems(); }
     });
@@ -1075,17 +1096,32 @@
         }
     }
     
-    document.getElementById('btn-save-branch').addEventListener('click', async () => {
+    document.getElementById('btn-save-branch').addEventListener('click', async (e) => {
+        const btn = e.target;
+        const originalText = btn.innerText;
+        btn.disabled = true; // Spam click roko
+        btn.innerText = "Saving...";
+
         const id = document.getElementById('edit-branch-id').value;
         const payload = { 
-            branch_name: document.getElementById('branch-name').value, 
-            email: document.getElementById('branch-email').value,
-            password: document.getElementById('branch-password').value 
+            branch_name: sanitizeText(document.getElementById('branch-name').value), 
+            email: sanitizeText(document.getElementById('branch-email').value),
+            password: sanitizeText(document.getElementById('branch-password').value) 
         };
-        if (!payload.branch_name || !payload.email || !payload.password) return displayToast("Fill all fields", "error");
         
-        let res; if (id) res = await supabase.from('branches_directory').update(payload).eq('id', id); else res = await supabase.from('branches_directory').insert(payload);
-        if (res.error) displayToast(res.error.message, "error"); else { displayToast("Branch saved!"); document.getElementById('btn-cancel-branch').click(); loadBranches(); }
+        if (!payload.branch_name || !payload.email || !payload.password) {
+            btn.disabled = false; btn.innerText = originalText;
+            return displayToast("Fill all fields", "error");
+        }
+        
+        let res; 
+        if (id) res = await supabase.from('branches_directory').update(payload).eq('id', id); 
+        else res = await supabase.from('branches_directory').insert(payload);
+        
+        btn.disabled = false; btn.innerText = originalText;
+
+        if (res.error) displayToast(res.error.message, "error"); 
+        else { displayToast("Branch saved!"); document.getElementById('btn-cancel-branch').click(); loadBranches(); }
     });
 
     window.editBranch = (id) => {
@@ -1353,19 +1389,31 @@
         } catch (e) { }
     }
 
+    // --- CACHE & PERSISTENCE (FIXED: No Heavy Data Caching) ---
     function loadFromLocalCache() {
         try {
             const cached = localStorage.getItem(CACHE_KEY);
             if(cached) {
                 const parsed = JSON.parse(cached);
-                allBills = parsed.bills || []; allInventory = parsed.inventory || [];
+                // Sirf master items cache karenge, bills aur inventory nahi
                 masterItemList = parsed.items || [];
-                if (masterItemList.length > 0 && selectedItems.size === 0) { selectedItems = new Set(masterItemList); renderItemFilter(); updateItemBtnText(); }
-                return (allBills.length > 0 || allInventory.length > 0);
+                if (masterItemList.length > 0 && selectedItems.size === 0) { 
+                    selectedItems = new Set(masterItemList); 
+                    renderItemFilter(); 
+                    updateItemBtnText(); 
+                }
+                return false; // Force fetch fresh data on reload
             }
-        } catch (e) { } return false;
+        } catch (e) { console.error("Cache load error:", e); } 
+        return false;
     }
-    function saveToLocalCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ bills: allBills, inventory: allInventory, items: masterItemList })); } catch (e) { } }
+    
+    function saveToLocalCache() { 
+        try { 
+            // Local storage ko 5MB limit se bachane ke liye sirf zaroori items save kar rahe hain
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ items: masterItemList })); 
+        } catch (e) { console.error("Cache save error:", e); } 
+    }
 
     // --- LIVE SYNC TOGGLE ENGINE ---
     let syncPoller = null; 
@@ -1397,29 +1445,90 @@
         try { await fetchFullInventory(); await fetchDefectives(); await fetchBillsFromDatabase(false); } catch (e) { console.error(e); } 
     }
 
-    // --- FETCH INVENTORY ---
+    // --- FETCH INVENTORY (UPDATED WITH PAGINATION) ---
     async function fetchFullInventory() {
-        const { data, error } = await supabase.from('inventory_pieces').select('*').eq('status', 'Available');
-        if(error) throw error;
-        allInventory = []; productCostMap = {}; 
-        
-        let tempItems = new Set(itemsMaster.map(i => i.name));
-        data.forEach(item => { 
-            allInventory.push(item);
-            if (item.product_name) { if (item.cost_price) productCostMap[item.product_name] = item.cost_price; tempItems.add(item.product_name); }
-        });
-        
-        masterItemList = Array.from(tempItems).sort();
-        if(selectedItems.size === 0) selectedItems = new Set(masterItemList);
-        renderItemFilter(); updateItemBtnText(); saveToLocalCache(); processReportData();
+        try {
+            let allData = [];
+            let fetchLimit = 1000;
+            let fromOffset = 0;
+            let hasMore = true;
+
+            // Loop chalega jab tak saara inventory data na aa jaye
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('inventory_pieces')
+                    .select('*')
+                    .eq('status', 'Available')
+                    .range(fromOffset, fromOffset + fetchLimit - 1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allData = allData.concat(data);
+                    if (data.length < fetchLimit) {
+                        hasMore = false; // Agar 1000 se kam data aaya matlab aur data nahi hai
+                    } else {
+                        fromOffset += fetchLimit; // Next page ke liye offset badhao
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            allInventory = []; productCostMap = {}; 
+            let tempItems = new Set(itemsMaster.map(i => i.name));
+            
+            allData.forEach(item => { 
+                allInventory.push(item);
+                if (item.product_name) { 
+                    if (item.cost_price) productCostMap[item.product_name] = item.cost_price; 
+                    tempItems.add(item.product_name); 
+                }
+            });
+            
+            masterItemList = Array.from(tempItems).sort();
+            if(selectedItems.size === 0) selectedItems = new Set(masterItemList);
+            renderItemFilter(); updateItemBtnText(); saveToLocalCache(); processReportData();
+        } catch (err) {
+            console.error("Inventory fetch error:", err);
+            displayToast("Inventory load failed", "error");
+        }
     }
 
-    // --- FETCH DEFECTIVES ---
+    // --- FETCH DEFECTIVES (UPDATED WITH PAGINATION) ---
     async function fetchDefectives() {
-        const { data, error } = await supabase.from('inventory_pieces').select('*').eq('status', 'Defective');
-        if(error) return;
-        defectiveInventory = data;
-        renderDefectivesTab();
+        try {
+            let allData = [];
+            let fetchLimit = 1000;
+            let fromOffset = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('inventory_pieces')
+                    .select('*')
+                    .eq('status', 'Defective')
+                    .range(fromOffset, fromOffset + fetchLimit - 1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allData = allData.concat(data);
+                    if (data.length < fetchLimit) {
+                        hasMore = false;
+                    } else {
+                        fromOffset += fetchLimit;
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+            
+            defectiveInventory = allData;
+            renderDefectivesTab();
+        } catch (err) {
+            console.error("Defectives fetch error:", err);
+        }
     }
     
     function renderDefectivesTab() {
