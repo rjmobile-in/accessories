@@ -803,13 +803,14 @@
                     <div class="filter-group" style="margin-bottom: 16px;">
                         <label>Offer Reward Type</label>
                         <select id="offer-type" class="input-field">
+                            <option value="">-- Select Reward Type --</option>
                             <option value="discount">Special Discount Price</option>
                             <option value="bogo">Give Free Items (Gifts)</option>
                             <option value="combo">Combo (Discount + Free Gifts)</option>
                         </select>
                     </div>
 
-                    <div id="offer-price-div" class="filter-group">
+                    <div id="offer-price-div" class="filter-group" style="display:none;">
                         <label>New Discounted Price (Total ₹)</label><input type="number" id="offer-price" class="input-field" placeholder="Enter price">
                     </div>
 
@@ -949,6 +950,8 @@
                         document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'block'; 
                     } else if (e.target.value === 'combo') {
                         document.getElementById('offer-price-div').style.display = 'block'; document.getElementById('offer-free-div').style.display = 'block'; 
+                    } else {
+                        document.getElementById('offer-price-div').style.display = 'none'; document.getElementById('offer-free-div').style.display = 'none';
                     }
                 });
 
@@ -1059,7 +1062,7 @@
             </tr>`).join('');
             
             const branchOpts = branchesMaster.map(b => `<option value="${b.branch_name}">${b.branch_name}</option>`).join('');
-            document.getElementById('qr-branch').innerHTML = branchOpts;
+            document.getElementById('qr-branch').innerHTML = `<option value="">-- Select Branch --</option>` + branchOpts; // Added Select Branch
             document.getElementById('transfer-dest-branch').innerHTML = `<option value="">-- Select Destination --</option>` + branchOpts;
             
             masterBranchList = ["Central / Unassigned Branch", ...branchesMaster.map(b => b.branch_name)];
@@ -1206,6 +1209,7 @@
             if (sku && qty > 0) free_items.push({ sku, qty });
         });
 
+        if (!type) return displayToast("Please select Offer Reward Type", "error");
         if (target_items.length === 0) return displayToast("Add at least one target requirement", "error");
         
         const payload = { 
@@ -1248,6 +1252,7 @@
     
     document.getElementById('btn-cancel-offer').addEventListener('click', () => {
         document.getElementById('edit-offer-id').value = ""; fpOfferStart.clear(); fpOfferEnd.clear();
+        document.getElementById('offer-type').value = ""; document.getElementById('offer-type').dispatchEvent(new Event('change'));
         document.getElementById('offer-targets-container').innerHTML = ''; window.addTargetItemRow();
         document.getElementById('offer-free-items-container').innerHTML = ''; window.addFreeItemRow();
         document.getElementById('btn-save-offer').innerText = "Create Offer"; document.getElementById('btn-cancel-offer').style.display = "none";
@@ -1722,7 +1727,7 @@
       const qrBranch = document.getElementById('qr-branch').value;
       const qty = parseInt(document.getElementById('qr-qty').value);
 
-      if (!targetItem || isNaN(qty) || qty <= 0) { displayToast("Please select item and valid quantity.", "error"); return; }
+      if (!targetItem || isNaN(qty) || qty <= 0 || !qrBranch) { displayToast("Please select item, branch and valid quantity.", "error"); return; }
 
       const btn = document.getElementById('btn-generate-qr'); const dlBtn = document.getElementById('btn-download-pdf'); const statusText = document.getElementById('qr-status');
       const previewWindow = document.getElementById('preview-window'); const printContainer = document.getElementById('print-container');
